@@ -9,6 +9,21 @@ For each question we check four things:
 
 import re
 
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
+
+from energiewende import config
+from energiewende.agent import tools
+
+TOOLS_BY_NAME = {t.name: t for t in tools.TOOLS}
+
+JUDGE_PROMPT = """You grade the answers of an assistant for questions about German energy policy.
+Compare the answer with the reference facts.
+correct = true if the answer contains the main point of the reference facts and does not contradict them.
+Extra details are fine. The answer may be in German.
+Always reply by calling the grade tool."""
+
 NUMBER = re.compile(r"-?\d[\d.,]*\d|-?\d")
 
 
@@ -61,3 +76,71 @@ def metrics(rows):
         "tokens": mean([r["tokens"] for r in rows]),
     }
     return {name: value for name, value in result.items() if value is not None}  # MLflow cannot log None
+
+
+def expected_number(check):
+    """The right number for a question: call the tool ourselves and read the value."""
+    result = TOOLS_BY_NAME[check["tool"]].invoke(check["args"])
+    return lookup(result, check["value"])
+
+
+@tool
+def grade(correct: bool, reason: str) -> str:
+    """Report the verdict: correct=true if the answer agrees with the reference facts."""
+    return reason
+
+
+def get_judge():
+    """The judge model. It answers by calling the grade tool, so we get a clear yes or no.
+    (Sending a tool also keeps the request small on gateways that add a long default prompt otherwise.)"""
+    llm = ChatOpenAI(
+        base_url=config.LLM_BASE_URL,
+        api_key=config.LLM_API_KEY,
+        model=config.JUDGE_MODEL,
+        temperature=0,
+        timeout=60,
+    )
+    return llm.bind_tools([grade])
+
+
+def judge(question, facts, answer, judge_llm):
+    """Ask the judge if the answer agrees with the reference facts. Returns (ok, reason)."""
+    reply = judge_llm.invoke([
+        SystemMessage(JUDGE_PROMPT),
+        HumanMessage(f"Question: {question}\nReference facts: {facts}\nAnswer: {answer}"),
+    ])
+    if not reply.tool_calls:
+        return False, "The judge gave no verdict."
+    args = reply.tool_calls[0]["args"]
+    return bool(args["correct"]), args.get("reason", "")
+
+
+def score_question(question, result, rag, judge_llm):
+    """One row of the results table: what the agent did and what was right."""
+    called = {call["name"] for call in result["tool_calls"]}
+    expected = set(question["tools"])
+    if not rag:
+        expected.discard("bundestag_search")  # the agent did not have this tool
+
+    row = {
+        "id": question["id"],
+        "type": question["type"],
+        "question": question["question"],
+        "answer": result["answer"],
+        "tools_called": ", ".join(sorted(called)),
+        "tools_ok": expected <= called,
+        "hit": None,
+        "number_ok": None,
+        "text_ok": None,
+        "judge_reason": "",
+        "latency_ms": result["latency_ms"],
+        "tokens": result["tokens"],
+    }
+    if rag and question.get("gold"):
+        row["hit"] = any(f"Drucksache {gold} (" in source for gold in question["gold"] for source in result["sources"])
+    if question.get("check"):
+        row["number_ok"] = number_found(expected_number(question["check"]), result["answer"])
+    if question.get("facts"):
+        row["text_ok"], row["judge_reason"] = judge(question["question"], question["facts"], result["answer"], judge_llm)
+    row["correct"] = all(ok for ok in (row["number_ok"], row["text_ok"]) if ok is not None)
+    return row

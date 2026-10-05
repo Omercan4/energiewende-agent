@@ -40,3 +40,73 @@ def test_metrics_skip_missing_values():
         "latency_ms": 200.0,
         "tokens": 2000.0,
     }
+
+
+from langchain_core.messages import AIMessage
+
+
+class FakeJudge:
+    """Returns a prepared verdict instead of calling a real model."""
+
+    def __init__(self, reply):
+        self.reply = reply
+
+    def invoke(self, messages):
+        return self.reply
+
+
+def verdict(correct):
+    return AIMessage(content="", tool_calls=[{"name": "grade", "args": {"correct": correct, "reason": "because"}, "id": "1"}])
+
+
+MIXED = {
+    "id": "m01",
+    "type": "mixed",
+    "question": "Strompreis am 15.09.2026 und was will die Linke zur Stromsteuer?",
+    "tools": ["price_series", "bundestag_search"],
+    "check": {"tool": "price_series", "args": {"start": "2026-09-15", "end": "2026-09-15"}, "value": "summary.mean"},
+    "gold": ["21/4273"],
+    "facts": "Die Linke will die Stromsteuer auf das EU-Minimum senken.",
+}
+
+RESULT = {
+    "answer": "Der Preis lag bei 120,50 EUR/MWh. Die Linke will die Stromsteuer auf das EU-Minimum senken.",
+    "sources": ["SMARD, price, 2026-09-15 to 2026-09-15", "Bundestag Drucksache 21/4273 (2026-02-24): https://x/4273.pdf"],
+    "tool_calls": [{"name": "price_series", "args": {}}, {"name": "bundestag_search", "args": {}}],
+    "latency_ms": 100,
+    "tokens": 1000,
+}
+
+
+def test_judge_reads_the_grade_tool_call():
+    assert evaluation.judge("Frage", "Fakten", "Antwort", FakeJudge(verdict(True))) == (True, "because")
+
+
+def test_judge_without_verdict_counts_as_wrong():
+    ok, reason = evaluation.judge("Frage", "Fakten", "Antwort", FakeJudge(AIMessage(content="Looks fine")))
+
+    assert ok is False
+    assert "no verdict" in reason
+
+
+def test_score_question_checks_tools_hit_number_and_text(monkeypatch):
+    monkeypatch.setattr(evaluation, "expected_number", lambda check: 120.5)
+
+    row = evaluation.score_question(MIXED, RESULT, rag=True, judge_llm=FakeJudge(verdict(True)))
+
+    assert row["tools_ok"] is True
+    assert row["hit"] is True
+    assert row["number_ok"] is True
+    assert row["text_ok"] is True
+    assert row["correct"] is True
+
+
+def test_without_rag_the_search_is_not_expected(monkeypatch):
+    monkeypatch.setattr(evaluation, "expected_number", lambda check: 120.5)
+    result = {**RESULT, "tool_calls": [{"name": "price_series", "args": {}}], "sources": []}
+
+    row = evaluation.score_question(MIXED, result, rag=False, judge_llm=FakeJudge(verdict(False)))
+
+    assert row["tools_ok"] is True  # bundestag_search was not available
+    assert row["hit"] is None
+    assert row["correct"] is False  # the text part is wrong

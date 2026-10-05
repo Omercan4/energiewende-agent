@@ -252,7 +252,7 @@
   question: Wie hoch war der durchschnittliche stündliche Stromverbrauch am 16. September 2026, und was fordern die Grünen zur 65-Prozent-Regel beim Heizen?
   tools: [generation_load, bundestag_search]
   check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean}
-  gold: ["21/2724"]
+  gold: ["21/2724", "21/4391"]
   facts: >-
     Motion 21/2724 (Bündnis 90/Die Grünen): keep the 65 % renewable heating rule of § 71 GEG and secure it
     legally; implement the EU buildings directive (EPBD) by May 2026 with minimum energy performance standards

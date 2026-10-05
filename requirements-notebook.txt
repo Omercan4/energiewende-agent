@@ -1,0 +1,5 @@
+# Extra packages for the notebook in notebooks/. Not needed by the app itself.
+-r requirements.txt
+notebook==7.6.3
+ipykernel==7.4.0
+ipywidgets==8.1.9

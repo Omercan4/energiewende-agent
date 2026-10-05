@@ -126,3 +126,17 @@ def test_questions_file_is_complete():
         if q["type"] in ("text", "mixed"):
             assert q["gold"] and q["facts"]
             assert "bundestag_search" in q["tools"]
+
+
+def test_judge_knows_todays_date_and_ignores_numbers():
+    class RecordingJudge(FakeJudge):
+        def invoke(self, messages):
+            self.messages = messages
+            return self.reply
+
+    recording = RecordingJudge(verdict(True))
+    evaluation.judge("Frage", "Fakten", "Antwort", recording, today="2026-10-05")
+
+    prompt = recording.messages[0].content
+    assert "2026-10-05" in prompt
+    assert "numbers" in prompt

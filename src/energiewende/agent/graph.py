@@ -22,6 +22,7 @@ from energiewende import config
 from energiewende.agent import tools
 
 MAX_STEPS = 10  # graph steps per question (each model call and each tool run is one step)
+PROMPT_VERSION = 2  # logged with each evaluation run; raise it when SYSTEM_PROMPT changes
 
 SYSTEM_PROMPT = """You answer questions about the German energy system.
 Today is {today}.
@@ -33,6 +34,8 @@ Use the tools:
 Rules:
 - Every number in your answer must come from a tool result. Use the mean, min, max and total
   that the tools give you. Never calculate or guess numbers yourself.
+- If the question has several parts, call the tools for every part before you answer.
+  Never answer that you still need another query.
 - When you use Bundestag papers, name the Drucksache number.
 - If a tool returns an error, say briefly what went wrong.
 - If the question is not about energy in Germany, say that you can only answer energy questions.

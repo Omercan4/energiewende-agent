@@ -27,7 +27,7 @@ agent = graph.build_agent(graph.get_llm(), tools.TOOLS if rag else tools.DATA_TO
 judge_llm = evaluation.get_judge()
 questions = evaluation.load_questions()[: args.limit]
 
-run_name = f"rag-k{args.k}-chunk{args.chunk_size}" if rag else "rag-off"
+run_name = f"v{graph.PROMPT_VERSION}-" + (f"rag-k{args.k}-chunk{args.chunk_size}" if rag else "rag-off")
 if args.limit:
     run_name = "try-" + run_name  # compare.py leaves out these short test runs
 
@@ -36,6 +36,7 @@ mlflow.set_experiment("energiewende-agent")
 with mlflow.start_run(run_name=run_name):
     mlflow.log_params({
         "model": config.LLM_MODEL,
+        "prompt_version": graph.PROMPT_VERSION,
         "judge_model": config.JUDGE_MODEL,
         "rag": args.rag,
         "k": args.k,

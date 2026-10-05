@@ -8,6 +8,7 @@ For each question we check four things:
 """
 
 import re
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -22,7 +23,9 @@ TOOLS_BY_NAME = {t.name: t for t in tools.TOOLS}
 QUESTIONS_FILE = Path(__file__).parents[2] / "eval" / "questions.yaml"
 
 JUDGE_PROMPT = """You grade the answers of an assistant for questions about German energy policy.
-Compare the answer with the reference facts.
+Today is {today}. The dates in the questions are real and in the past.
+Grade only the text part: compare it with the reference facts. Ignore numbers like prices or amounts
+of electricity, they are checked separately.
 correct = true if the answer contains the main point of the reference facts and does not contradict them.
 Extra details are fine. The answer may be in German.
 Always reply by calling the grade tool."""
@@ -106,10 +109,10 @@ def get_judge():
     return llm.bind_tools([grade])
 
 
-def judge(question, facts, answer, judge_llm):
+def judge(question, facts, answer, judge_llm, today=None):
     """Ask the judge if the answer agrees with the reference facts. Returns (ok, reason)."""
     reply = judge_llm.invoke([
-        SystemMessage(JUDGE_PROMPT),
+        SystemMessage(JUDGE_PROMPT.format(today=today or date.today())),
         HumanMessage(f"Question: {question}\nReference facts: {facts}\nAnswer: {answer}"),
     ])
     if not reply.tool_calls:

@@ -1,0 +1,281 @@
+# The 30 evaluation questions.
+#
+# type    number = answered with data tools, text = answered with the Bundestag search, mixed = both
+# tools   the tools the agent should call
+# check   how we get the right number: call this tool with these args and read this value
+# gold    the Bundestag papers that contain the answer (follow-up papers on the same bill count too)
+# facts   the main point of the answer, read in the paper itself; an LLM judge compares the answer with it
+#
+# Dates are quoted, so YAML keeps them as text.
+
+# ---------- number questions ----------
+
+- id: n01
+  type: number
+  question: Wie hoch war der durchschnittliche Day-Ahead-Strompreis am 15. September 2026?
+  tools: [price_series]
+  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean}
+
+- id: n02
+  type: number
+  question: Wie hoch war der höchste Strompreis am 20. September 2026?
+  tools: [price_series]
+  check: {tool: price_series, args: {start: "2026-09-20", end: "2026-09-20"}, value: summary.max.value}
+
+- id: n03
+  type: number
+  question: Was war der niedrigste Strompreis in der Woche vom 7. bis 13. September 2026?
+  tools: [price_series]
+  check: {tool: price_series, args: {start: "2026-09-07", end: "2026-09-13"}, value: summary.min.value}
+
+- id: n04
+  type: number
+  question: Wie viel Solarstrom wurde am 1. September 2026 in Deutschland erzeugt?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: solar, start: "2026-09-01", end: "2026-09-01"}, value: summary.total}
+
+- id: n05
+  type: number
+  question: Wie viel Strom haben Windkraftanlagen an Land am 10. September 2026 erzeugt?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: wind_onshore, start: "2026-09-10", end: "2026-09-10"}, value: summary.total}
+
+- id: n06
+  type: number
+  question: Wie hoch war der durchschnittliche stündliche Stromverbrauch in Deutschland am 16. September 2026?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean}
+
+- id: n07
+  type: number
+  question: Wie viel Strom wurde vom 21. bis 27. September 2026 aus Braunkohle erzeugt?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: lignite, start: "2026-09-21", end: "2026-09-27"}, value: summary.total}
+
+- id: n08
+  type: number
+  question: Wie hoch war die höchste stündliche Erzeugung aus Offshore-Wind am 5. September 2026?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: wind_offshore, start: "2026-09-05", end: "2026-09-05"}, value: summary.max.value}
+
+- id: n09
+  type: number
+  question: Wie hoch war die mittlere Windgeschwindigkeit in 100 m Höhe an der Nordsee am 12. September 2026?
+  tools: [weather]
+  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean}
+
+- id: n10
+  type: number
+  question: Wie hoch war die Höchsttemperatur in München am 2. September 2026?
+  tools: [weather]
+  check: {tool: weather, args: {region: munich, start: "2026-09-02", end: "2026-09-02"}, value: summary_by_variable.temperature_2m.max.value}
+
+# ---------- text questions ----------
+
+- id: t01
+  type: text
+  question: Wie will die Bundesregierung den Hochlauf von Wasserstoff beschleunigen?
+  tools: [bundestag_search]
+  gold: ["21/2506", "21/3203", "21/4326"]
+  facts: >-
+    Draft law 21/2506 (Bundesregierung): many acceleration rules are bundled in one Wasserstoffbeschleunigungsgesetz;
+    planning and approval procedures for hydrogen infrastructure become simpler and faster (e.g. digitalisation,
+    shorter deadlines); hydrogen projects are given an "überragendes öffentliches Interesse".
+
+- id: t02
+  type: text
+  question: Was schlägt der Bundesrat vor, um den Ausbau der Windenergie an Land zu beschleunigen?
+  tools: [bundestag_search]
+  gold: ["21/5920"]
+  facts: >-
+    Draft law 21/5920 (Bundesrat): a one-off additional special tender (Sonderausschreibung) for onshore wind
+    in 2026 with 5,000 MW, not counted against the regular tender volumes, because a record number of projects
+    was approved in 2025 and a backlog of approved projects is feared.
+
+- id: t03
+  type: text
+  question: Was fordert die AfD-Fraktion zum Erneuerbare-Energien-Gesetz?
+  tools: [bundestag_search]
+  gold: ["21/8108"]
+  facts: >-
+    Draft law 21/8108 (AfD): the EEG should be abolished (EEG-Abschaffungsgesetz); the EEG would cease to apply
+    the day after the law is promulgated. The saved subsidies could pay for lowering the electricity tax.
+
+- id: t04
+  type: text
+  question: Welche Kritik übt die Linke an der geplanten EEG-Novelle 2027?
+  tools: [bundestag_search]
+  gold: ["21/7907"]
+  facts: >-
+    Motion 21/7907 (Die Linke): the EEG-Novelle 2027 cuts support for renewables, which hurts jobs, the pace of
+    expansion and the climate targets. Die Linke rejects abolishing the fixed feed-in tariff for small rooftop
+    PV and wants support for PV on buildings to be kept.
+
+- id: t05
+  type: text
+  question: Wie steht die AfD-Fraktion zur Kernenergie?
+  tools: [bundestag_search]
+  gold: ["21/4461", "21/4873"]
+  facts: >-
+    Motion 21/4461 (AfD): calls the nuclear phase-out a serious mistake; nuclear energy should be recognised as
+    clean and environmentally friendly (EU taxonomy) and promoted; more research on new reactors such as small
+    modular reactors (SMR), molten salt and dual-fluid reactors.
+
+- id: t06
+  type: text
+  question: Was fordert die Linke für die Stromübertragungsnetze?
+  tools: [bundestag_search]
+  gold: ["21/3911"]
+  facts: >-
+    Motion 21/3911 (Die Linke): a federal infrastructure company should operate the transmission grids, and the
+    transmission grids should be transferred into public ownership. Context: the federal government buys 25.1 %
+    of TenneT Deutschland for 7.6 billion euros.
+
+- id: t07
+  type: text
+  question: Wie stark will die AfD die Energie- und Stromsteuer senken, und wie hoch wäre die Entlastung?
+  tools: [bundestag_search]
+  gold: ["21/6332", "21/6679"]
+  facts: >-
+    Draft law 21/6332 (AfD): lower energy and electricity tax rates to the EU minimum rates (Energy Taxation
+    Directive 2003/96/EC). Relief of about 21 billion euros per year, of which about 12.3 billion on fuels,
+    about 6.2 billion on the electricity tax and 2.5 billion on heating.
+
+- id: t08
+  type: text
+  question: Welchen Umsatzsteuersatz will die AfD für Gas einführen?
+  tools: [bundestag_search]
+  gold: ["21/6333", "21/6679"]
+  facts: >-
+    Draft law 21/6333 (AfD): the supply of gas should get the reduced VAT rate of 7 %. Tax revenue would fall
+    by about 9 billion euros per year (full year).
+
+- id: t09
+  type: text
+  question: Was fordern die Grünen in Bezug auf die Nord-Stream-Pipelines?
+  tools: [bundestag_search]
+  gold: ["21/224", "21/468"]
+  facts: >-
+    Motion 21/224 (Bündnis 90/Die Grünen): explicitly rule out putting the Nord Stream pipelines back into
+    operation; keep critical infrastructure in European hands; end Russian energy imports by the end of 2027
+    at the latest (REPowerEU); present a gas independence strategy.
+
+- id: t10
+  type: text
+  question: Wie will die Bundesregierung genug gesicherte Kraftwerksleistung für das Jahr 2031 sicherstellen?
+  tools: [bundestag_search]
+  gold: ["21/6279", "21/6563", "21/6998"]
+  facts: >-
+    Draft law 21/6279 (Bundesregierung): a capacity market as investment framework. In tenders, bidders compete
+    for a payment from the transmission system operators for providing electrical capacity; the cheapest win.
+    Limited to the target year 2031; a comprehensive capacity market from 2032 is to follow. The first tenders
+    are for new plants.
+
+# ---------- mixed questions ----------
+
+- id: m01
+  type: mixed
+  question: Wie hoch war der durchschnittliche Strompreis am 15. September 2026, und was fordert die Linke zur Stromsteuer?
+  tools: [price_series, bundestag_search]
+  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean}
+  gold: ["21/4273"]
+  facts: >-
+    Motion 21/4273 (Die Linke): lower the electricity tax from 2.05 cent/kWh to the EU minimum of 0.1 cent/kWh
+    for private persons and 0.05 cent/kWh for companies.
+
+- id: m02
+  type: mixed
+  question: Wie viel Solarstrom wurde am 1. September 2026 erzeugt, und was fordern die Grünen zur Einspeisevergütung für Solaranlagen auf Dächern?
+  tools: [generation_load, bundestag_search]
+  check: {tool: generation_load, args: {series: solar, start: "2026-09-01", end: "2026-09-01"}, value: summary.total}
+  gold: ["21/4457"]
+  facts: >-
+    Motion 21/4457 (Bündnis 90/Die Grünen): keep the feed-in tariff for rooftop PV and avoid unnecessary
+    bureaucratic hurdles; keep adequate support for all kinds of rooftop solar; a right to solar, e.g. through
+    energy sharing and tenant electricity models.
+
+- id: m03
+  type: mixed
+  question: Wie viel Windstrom an Land wurde am 10. September 2026 erzeugt, und welche zusätzliche Ausschreibung schlägt der Bundesrat vor?
+  tools: [generation_load, bundestag_search]
+  check: {tool: generation_load, args: {series: wind_onshore, start: "2026-09-10", end: "2026-09-10"}, value: summary.total}
+  gold: ["21/5920"]
+  facts: >-
+    Draft law 21/5920 (Bundesrat): a one-off additional special tender for onshore wind in 2026 with 5,000 MW,
+    not counted against the regular tender volumes.
+
+- id: m04
+  type: mixed
+  question: Wie viel Strom aus Offshore-Wind wurde vom 21. bis 27. September 2026 erzeugt, und was regelt der Gesetzentwurf zur Windenergie auf See und zu Stromnetzen?
+  tools: [generation_load, bundestag_search]
+  check: {tool: generation_load, args: {series: wind_offshore, start: "2026-09-21", end: "2026-09-27"}, value: summary.total}
+  gold: ["21/1491", "21/2075", "21/3078"]
+  facts: >-
+    Draft law 21/1491 (Bundesregierung): implements the planning and permitting rules of the EU Renewable Energy
+    Directive (EU) 2018/2001 for offshore wind and power grids, with changes to the WindSeeG, the EnWG and the
+    NABEG; the offshore area development plan will define acceleration areas with simpler permitting.
+
+- id: m05
+  type: mixed
+  question: Wie viel Strom wurde vom 21. bis 27. September 2026 aus Braunkohle erzeugt, und wie will die Bundesregierung Investitionen in neue gesicherte Kraftwerksleistung anreizen?
+  tools: [generation_load, bundestag_search]
+  check: {tool: generation_load, args: {series: lignite, start: "2026-09-21", end: "2026-09-27"}, value: summary.total}
+  gold: ["21/6279", "21/6563", "21/6998"]
+  facts: >-
+    Draft law 21/6279 (Bundesregierung): a capacity market with tenders, in which bidders get a payment from the
+    transmission system operators for providing secured capacity, first for the target year 2031.
+
+- id: m06
+  type: mixed
+  question: Wie hoch war der höchste Strompreis am 20. September 2026, und was fordern die Grünen zum Netzanschlusspaket?
+  tools: [price_series, bundestag_search]
+  check: {tool: price_series, args: {start: "2026-09-20", end: "2026-09-20"}, value: summary.max.value}
+  gold: ["21/8121"]
+  facts: >-
+    Motion 21/8121 (Bündnis 90/Die Grünen): withdraw the Netzanschlusspaket and present a new grid package for
+    a 100 % renewable energy system; reject the Redispatch-Vorbehalt (regional steering of renewables in
+    congested areas); modernise and digitalise the grids.
+
+- id: m07
+  type: mixed
+  question: Wie hoch war die mittlere Windgeschwindigkeit an der Nordsee am 12. September 2026, und welche Maßnahmen gegen Netzengpässe fordert die Linke?
+  tools: [weather, bundestag_search]
+  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean}
+  gold: ["21/7906"]
+  facts: >-
+    Motion 21/7906 (Die Linke): no Redispatch-Vorbehalt for renewables in capacity-limited grid areas; instead
+    e.g. overbuilding grid connections, curtailment at the feed-in point, standardised flexible grid connection
+    agreements, temporarily higher grid utilisation and a battery storage push in congested areas.
+
+- id: m08
+  type: mixed
+  question: Wie hoch war der durchschnittliche stündliche Stromverbrauch am 16. September 2026, und was fordern die Grünen zur 65-Prozent-Regel beim Heizen?
+  tools: [generation_load, bundestag_search]
+  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean}
+  gold: ["21/2724"]
+  facts: >-
+    Motion 21/2724 (Bündnis 90/Die Grünen): keep the 65 % renewable heating rule of § 71 GEG and secure it
+    legally; implement the EU buildings directive (EPBD) by May 2026 with minimum energy performance standards
+    so the worst buildings are renovated first; raise the renovation rate to at least 2 % per year.
+
+- id: m09
+  type: mixed
+  question: Wie hoch war die Höchsttemperatur in München am 2. September 2026, und was fordert die Linke für eine soziale Wärmewende?
+  tools: [weather, bundestag_search]
+  check: {tool: weather, args: {region: munich, start: "2026-09-02", end: "2026-09-02"}, value: summary_by_variable.temperature_2m.max.value}
+  gold: ["21/3910"]
+  facts: >-
+    Motion 21/3910 (Die Linke): the heating transition should be a mandatory municipal task; raise the 65 % rule
+    to 100 % renewable energy for one- and two-family houses and 75 % for multi-family houses; renovations should
+    be neutral for the total rent (warmmietenneutral) and help low-income households.
+
+- id: m10
+  type: mixed
+  question: Was war der niedrigste Strompreis in der Woche vom 7. bis 13. September 2026, und warum wollen die Grünen eine Rückkehr zu Nord Stream ausschließen?
+  tools: [price_series, bundestag_search]
+  check: {tool: price_series, args: {start: "2026-09-07", end: "2026-09-13"}, value: summary.min.value}
+  gold: ["21/224", "21/468"]
+  facts: >-
+    Motion 21/224 (Bündnis 90/Die Grünen): the Nord Stream pipelines endanger security; Russian fossil exports
+    finance Russia's war against Ukraine; Russian energy imports should end by the end of 2027 and dependence on
+    autocracies should be reduced.

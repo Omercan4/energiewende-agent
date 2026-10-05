@@ -8,7 +8,9 @@ For each question we check four things:
 """
 
 import re
+from pathlib import Path
 
+import yaml
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
@@ -17,6 +19,7 @@ from energiewende import config
 from energiewende.agent import tools
 
 TOOLS_BY_NAME = {t.name: t for t in tools.TOOLS}
+QUESTIONS_FILE = Path(__file__).parents[2] / "eval" / "questions.yaml"
 
 JUDGE_PROMPT = """You grade the answers of an assistant for questions about German energy policy.
 Compare the answer with the reference facts.
@@ -144,3 +147,8 @@ def score_question(question, result, rag, judge_llm):
         row["text_ok"], row["judge_reason"] = judge(question["question"], question["facts"], result["answer"], judge_llm)
     row["correct"] = all(ok for ok in (row["number_ok"], row["text_ok"]) if ok is not None)
     return row
+
+
+def load_questions():
+    """The evaluation questions from eval/questions.yaml."""
+    return yaml.safe_load(QUESTIONS_FILE.read_text())

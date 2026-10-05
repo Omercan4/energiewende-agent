@@ -1,4 +1,7 @@
+from langchain_core.messages import AIMessage
+
 from energiewende import evaluation
+from energiewende.agent import tools
 
 
 def test_numbers_in_reads_german_and_english_style():
@@ -40,9 +43,6 @@ def test_metrics_skip_missing_values():
         "latency_ms": 200.0,
         "tokens": 2000.0,
     }
-
-
-from langchain_core.messages import AIMessage
 
 
 class FakeJudge:
@@ -110,3 +110,19 @@ def test_without_rag_the_search_is_not_expected(monkeypatch):
     assert row["tools_ok"] is True  # bundestag_search was not available
     assert row["hit"] is None
     assert row["correct"] is False  # the text part is wrong
+
+
+def test_questions_file_is_complete():
+    questions = evaluation.load_questions()
+
+    assert len(questions) == 30
+    assert len({q["id"] for q in questions}) == 30
+    assert sorted(q["type"] for q in questions) == ["mixed"] * 10 + ["number"] * 10 + ["text"] * 10
+    for q in questions:
+        assert set(q["tools"]) <= {t.name for t in tools.TOOLS}
+        if q["type"] in ("number", "mixed"):
+            assert q["check"]["tool"] in q["tools"]
+            assert all(isinstance(value, str) for value in q["check"]["args"].values())  # dates must be quoted
+        if q["type"] in ("text", "mixed"):
+            assert q["gold"] and q["facts"]
+            assert "bundestag_search" in q["tools"]

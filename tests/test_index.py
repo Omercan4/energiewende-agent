@@ -1,7 +1,7 @@
 from llama_index.core.embeddings import MockEmbedding
 from llama_index.core.schema import MetadataMode
 
-from energiewende.index import store
+from energiewende.index import search, store
 
 
 def fake_embed_model():
@@ -71,3 +71,17 @@ def test_each_chunk_size_has_its_own_index(tmp_path):
     small = store.count_chunks(chunk_size=300, index_dir=str(tmp_path))
     large = store.count_chunks(chunk_size=500, index_dir=str(tmp_path))
     assert small > large  # smaller chunks, so more of them
+
+
+def test_search_returns_text_and_source(tmp_path):
+    store.build_index([make_paper(7)], index_dir=str(tmp_path), embed_model=fake_embed_model())
+    index = store.load_index(index_dir=str(tmp_path), embed_model=fake_embed_model())
+
+    hit = search.search(index, "Strompreis", k=1)[0]
+
+    assert hit["number"] == "21/7"
+    assert hit["date"] == "2026-09-30"
+    assert hit["title"] == "Kurzer Titel"
+    assert hit["url"] == "https://example.com/7.pdf"
+    assert "Strompreis" in hit["text"]
+    assert isinstance(hit["score"], float)

@@ -14,6 +14,7 @@ from energiewende.index import search, store
 from energiewende.ingest import openmeteo, smard
 
 SEARCH_K = 4  # how many text passages bundestag_search returns
+CHUNK_SIZE = 400  # which search index bundestag_search uses (there is one per chunk size)
 
 
 def summarize(points, key="value"):
@@ -96,9 +97,9 @@ def weather(region: str, start: str, end: str) -> dict:
 
 
 @functools.cache
-def get_index():
-    """Load the search index once, on first use."""
-    return store.load_index()
+def get_index(chunk_size):
+    """Load the search index for this chunk size once, on first use."""
+    return store.load_index(chunk_size)
 
 
 @tool
@@ -106,7 +107,7 @@ def bundestag_search(question: str) -> dict:
     """Search Bundestag printed papers (Drucksachen) on energy topics: laws, motions,
     committee reports. Use it for what parties, the government or the Bundestag
     want, plan, criticize or decided. Returns the best matching text passages."""
-    hits = search.search(get_index(), question, k=SEARCH_K)
+    hits = search.search(get_index(CHUNK_SIZE), question, k=SEARCH_K)
     sources = [f"Bundestag Drucksache {h['number']} ({h['date']}): {h['url']}" for h in hits]
     return {"hits": hits, "sources": sorted(set(sources))}
 

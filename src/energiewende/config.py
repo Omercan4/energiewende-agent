@@ -22,3 +22,9 @@ EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "intfloat/multilingual-e5-sm
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash")
+
+# The model that grades text answers in the evaluation (another model family than the agent).
+JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "claude-haiku-4.5")
+
+# Where MLflow saves evaluation runs.
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")

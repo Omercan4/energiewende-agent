@@ -88,10 +88,31 @@ def test_weather_summarizes_each_variable(monkeypatch):
 
 def test_bundestag_search_returns_hits_and_sources(monkeypatch):
     hit = {"number": "21/7", "date": "2026-09-30", "title": "Titel", "url": "https://x/7.pdf", "score": 0.8, "text": "Text"}
-    monkeypatch.setattr(tools, "get_index", lambda: "fake index")
+    monkeypatch.setattr(tools, "get_index", lambda chunk_size: "fake index")
     monkeypatch.setattr(tools.search, "search", lambda index, question, k: [hit])
 
     result = tools.bundestag_search.invoke({"question": "Wasserstoff"})
 
     assert result["hits"] == [hit]
     assert result["sources"] == ["Bundestag Drucksache 21/7 (2026-09-30): https://x/7.pdf"]
+
+
+def test_bundestag_search_uses_the_chosen_index_and_k(monkeypatch):
+    used = {}
+
+    def fake_get_index(chunk_size):
+        used["chunk_size"] = chunk_size
+        return "fake index"
+
+    def fake_search(index, question, k):
+        used["k"] = k
+        return []
+
+    monkeypatch.setattr(tools, "get_index", fake_get_index)
+    monkeypatch.setattr(tools.search, "search", fake_search)
+    monkeypatch.setattr(tools, "CHUNK_SIZE", 300)
+    monkeypatch.setattr(tools, "SEARCH_K", 6)
+
+    tools.bundestag_search.invoke({"question": "Wasserstoff"})
+
+    assert used == {"chunk_size": 300, "k": 6}

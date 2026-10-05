@@ -702,7 +702,8 @@ def test_follows_the_cursor_until_the_end(monkeypatch):
     papers = dip.search_papers("Strom")
 
     assert [p["number"] for p in papers] == ["21/1", "21/2", "21/3"]
-    assert sent[0] == {"f.wahlperiode": 21, "f.titel": "Strom"}
+    # f.zuordnung=BT keeps Bundestag papers and drops Bundesrat papers.
+    assert sent[0] == {"f.wahlperiode": 21, "f.titel": "Strom", "f.zuordnung": "BT"}
     assert sent[1]["cursor"] == "c1"
 
 
@@ -792,7 +793,8 @@ def search_papers(keyword, wahlperiode=21, max_docs=50):
         raise RuntimeError("DIP_API_KEY is not set. See .env.example.")
 
     headers = {"Authorization": "ApiKey " + config.DIP_API_KEY}
-    params = {"f.wahlperiode": wahlperiode, "f.titel": keyword}
+    # "BT" = Bundestag. Without it, the API also returns Bundesrat papers.
+    params = {"f.wahlperiode": wahlperiode, "f.titel": keyword, "f.zuordnung": "BT"}
     papers = []
 
     while len(papers) < max_docs:

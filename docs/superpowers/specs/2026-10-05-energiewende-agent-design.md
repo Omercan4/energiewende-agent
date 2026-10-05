@@ -65,7 +65,8 @@ Directory layout (each directory has one responsibility):
 
 - Source: Bundestag DIP API, endpoint `drucksache-text`. Printed papers
   (Drucksachen) of the current electoral period (21) whose title contains an
-  energy keyword (Energie, Strom, Erneuerbare, Wasserstoff, Waerme), deduplicated
+  energy keyword (Energie, Strom, Erneuerbare, Wasserstoff, Waerme), Bundestag
+  papers only (`f.zuordnung=BT`, no Bundesrat papers), deduplicated
   and capped at 200 documents. Verified on 2026-10-05: about 190 papers match,
   the API returns full text, and embedding them costs a few cents.
 - Plenary minutes are left out on purpose: they cannot be filtered by topic and

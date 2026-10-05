@@ -33,7 +33,8 @@ def search_papers(keyword, wahlperiode=21, max_docs=50):
         raise RuntimeError("DIP_API_KEY is not set. See .env.example.")
 
     headers = {"Authorization": "ApiKey " + config.DIP_API_KEY}
-    params = {"f.wahlperiode": wahlperiode, "f.titel": keyword}
+    # "BT" = Bundestag. Without it, the API also returns Bundesrat papers.
+    params = {"f.wahlperiode": wahlperiode, "f.titel": keyword, "f.zuordnung": "BT"}
     papers = []
 
     while len(papers) < max_docs:

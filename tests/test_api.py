@@ -1,0 +1,29 @@
+from fastapi.testclient import TestClient
+
+from energiewende.agent import graph
+from energiewende.api.main import app
+
+client = TestClient(app)
+
+
+def test_health():
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_ask_returns_the_agent_result(monkeypatch):
+    result = {"answer": "150 EUR/MWh", "sources": ["SMARD"], "tool_calls": [], "latency_ms": 5, "tokens": 10}
+    monkeypatch.setattr(graph, "ask", lambda question: result)
+
+    response = client.post("/ask", json={"question": "Strompreis gestern?"})
+
+    assert response.status_code == 200
+    assert response.json() == result
+
+
+def test_empty_question_is_rejected():
+    response = client.post("/ask", json={"question": ""})
+
+    assert response.status_code == 422

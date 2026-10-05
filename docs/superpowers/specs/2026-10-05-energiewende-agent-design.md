@@ -1,7 +1,7 @@
 # Energiewende Agent: Design
 
 Date: 2026-10-05
-Status: draft for review
+Status: approved
 
 ## 1. Purpose
 
@@ -63,9 +63,13 @@ Directory layout (each directory has one responsibility):
 
 **Text corpus (RAG).**
 
-- Source: Bundestag DIP API. Plenary minutes and printed papers on energy topics
-  from the current legislative period, capped at roughly 500 documents to keep
-  embedding cost to a few cents.
+- Source: Bundestag DIP API, endpoint `drucksache-text`. Printed papers
+  (Drucksachen) of the current electoral period (21) whose title contains an
+  energy keyword (Energie, Strom, Erneuerbare, Wasserstoff, Waerme), deduplicated
+  and capped at 200 documents. Verified on 2026-10-05: about 190 papers match,
+  the API returns full text, and embedding them costs a few cents.
+- Plenary minutes are left out on purpose: they cannot be filtered by topic and
+  one session is about 440,000 characters, mostly on unrelated subjects.
 - Chunking: about 800 tokens with 100 overlap as the starting point; chunk size
   is an evaluated parameter.
 - Each chunk keeps metadata: document id, document type, date, and where
@@ -162,9 +166,9 @@ and evaluation runs.
 - **Framework churn.** LangGraph and LlamaIndex change APIs often. Mitigation:
   pin versions, read current docs at implementation time, keep framework code
   in thin adapters.
-- **Bundestag full-text access.** How full minutes text is exposed through the
-  DIP API is verified in the first task of the plan. If the API only returns
-  metadata, the fallback is the Bundestag open-data XML files, which are public.
+- **Bundestag API key.** Resolved: the API returns full text, and a public key
+  (valid until end of May 2027) is listed at
+  https://dip.bundestag.de/über-dip/hilfe/api. The key lives only in `.env`.
 - **Local prerequisites.** Docker is not installed on the development machine
   and must be installed before M5. The Azure CLI is needed only for M6.
 - **Open-Meteo terms.** The free tier is for non-commercial use. This is a

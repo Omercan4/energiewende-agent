@@ -1,3 +1,9 @@
 requests==2.34.2
 python-dotenv==1.2.4
 pytest==9.1.1
+llama-index-core==0.14.25
+llama-index-embeddings-huggingface==0.8.0
+llama-index-vector-stores-chroma==0.6.0
+chromadb==1.5.9
+sentence-transformers==6.1.0
+torch==2.14.1

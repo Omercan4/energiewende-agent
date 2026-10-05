@@ -11,3 +11,9 @@ CACHE_DIR = os.environ.get("CACHE_DIR", "data/cache")
 
 # Key for the Bundestag DIP API.
 DIP_API_KEY = os.environ.get("DIP_API_KEY", "")
+
+# Folder where the search index (Chroma database) is stored.
+INDEX_DIR = os.environ.get("INDEX_DIR", "data/chroma")
+
+# Local HuggingFace model that turns text into vectors.
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")

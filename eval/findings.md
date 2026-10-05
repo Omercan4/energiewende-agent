@@ -32,3 +32,31 @@ The table is in `results.md`. Below is what the wrong answers had in common.
 
 - m08: 21/4391 (the committee recommendation on the Greens' motion 21/2724) was added to the gold papers
   after this round. The hit rates in `results.md` were computed before; there, finding 21/4391 counts as a miss.
+
+# Round 2 (2026-10-05): two fixes, two settings re-run
+
+Changes (prompt version 2, runs named `v2-...`):
+- Agent prompt: "If the question has several parts, call the tools for every part before you answer."
+- Judge prompt: knows today's date and grades only the text part (numbers are checked in code).
+- m08 has the extra gold paper 21/4391 (see above).
+
+| Setting | Round | Tools | Hit@k | Text | All correct |
+| --- | --- | --- | --- | --- | --- |
+| k4, chunk 400 | 1 | 0.97 | 0.75 | 0.70 | 0.80 |
+| k4, chunk 400 | 2 | **1.00** | 0.80 | 0.70 | 0.80 |
+| k6, chunk 300 | 1 | 0.97 | 0.90 | 0.75 | 0.83 |
+| k6, chunk 300 | 2 | **1.00** | **1.00** | 0.75 | 0.83 |
+
+What changed:
+- **The agent fix worked for what it targeted.** Tool accuracy is 1.00 in both runs, every mixed question
+  now uses the search (10/10, before 9/10), and no answer stops halfway any more.
+- **The overall score did not move.** The questions that are still wrong (t03, t04, m01, m07, m08 and a few
+  others) fail because the search returns the wrong passage or the wrong party's paper (problems 2 and 3
+  above). The prompt fix cannot help there; better retrieval can.
+- **The judge itself is noisy.** Re-grading the round-1 answers with the new judge gave text scores of
+  0.75 (k4/chunk400, before 0.70) and 0.70 (k6/chunk300, before 0.75). One text question is 0.05 of the
+  score, so differences of 0.05 between runs are within this noise. Bigger question sets or several
+  judge votes per answer would make the numbers more stable.
+
+Next step for a round 3: improve retrieval (a reranker, or filters on party and paper type), then
+re-run the same settings and compare.

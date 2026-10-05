@@ -71,14 +71,19 @@ Directory layout (each directory has one responsibility):
   the API returns full text, and embedding them costs a few cents.
 - Plenary minutes are left out on purpose: they cannot be filtered by topic and
   one session is about 440,000 characters, mostly on unrelated subjects.
-- Chunking: about 800 tokens with 100 overlap as the starting point; chunk size
-  is an evaluated parameter.
+- Chunking: 400 tokens with 50 overlap (LlamaIndex SentenceSplitter). Verified:
+  this gives about 6,200 chunks of at most about 350 model tokens, below the
+  embedding model's 512-token limit. Chunk size is an evaluated parameter.
+- Metadata (title, number, date, ...) is stored with each chunk but excluded from
+  the embedded text and from the chunk-size budget. Bundestag titles average
+  about 900 characters; counting them made chunks tiny or broke the build.
 - Each chunk keeps metadata: document id, document type, date, and where
   available speaker and parliamentary group. Metadata is used for citations and
   optional filters. No graph is built.
-- Embeddings: an OpenAI-compatible embeddings endpoint. Vector store: Chroma,
-  persisted under `./data/chroma`. Retrieval: top-k similarity search through
-  LlamaIndex.
+- Embeddings: local HuggingFace model `intfloat/multilingual-e5-small` (384
+  dimensions, German-capable, runs on the Mac GPU; the whole corpus embeds in
+  about 1.5 minutes, at no cost). Vector store: Chroma, persisted under
+  `./data/chroma`. Retrieval: top-k similarity search through LlamaIndex.
 
 ## 5. Agent
 
@@ -112,7 +117,7 @@ API:
   separately from the agent model and documented in the README.
 - Each run logs its parameters to MLflow (model, chunk size, k, RAG on/off).
 - Planned comparison (small, to keep cost low): RAG off vs on, k in {3, 6},
-  chunk size in {500, 1000}. The README shows the resulting table. Evaluation
+  chunk size in {300, 500} (the embedding model reads at most 512 tokens). The README shows the resulting table. Evaluation
   runs are manual and are not part of CI.
 
 ## 7. Packaging, CI and deployment
@@ -132,6 +137,9 @@ API:
 - All endpoints, keys and model names are environment variables read in
   `config.py`: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `EMBEDDING_MODEL`,
   `DIP_API_KEY`. The code does not care which provider sits behind the URL.
+- Chosen setup (2026-10-05): an OpenAI-compatible gateway provided by the
+  developer's environment, model `gemini-2.5-flash` (tool calling verified).
+  The gateway URL is internal and stays in `.env` only, like the key.
 - Which LLM key is used (a personal key or an employer-provided one) is a
   decision of the repo owner and not part of the design. An employer's key
   should only be used with explicit permission, and never appear in the repo.

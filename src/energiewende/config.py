@@ -17,3 +17,8 @@ INDEX_DIR = os.environ.get("INDEX_DIR", "data/chroma")
 
 # Local HuggingFace model that turns text into vectors.
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
+
+# The LLM. Any OpenAI-compatible endpoint works.
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "")
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash")

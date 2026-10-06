@@ -28,3 +28,6 @@ JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "claude-haiku-4.5")
 
 # Where MLflow saves evaluation runs.
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+
+# Optional password for POST /ask (header X-API-Key). Empty means no password, e.g. locally.
+APP_API_KEY = os.environ.get("APP_API_KEY", "")

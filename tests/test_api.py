@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from energiewende import config
 from energiewende.agent import graph
 from energiewende.api.main import app
 
@@ -27,3 +28,18 @@ def test_empty_question_is_rejected():
     response = client.post("/ask", json={"question": ""})
 
     assert response.status_code == 422
+
+
+def test_ask_needs_the_key_when_one_is_set(monkeypatch):
+    monkeypatch.setattr(config, "APP_API_KEY", "secret")
+    monkeypatch.setattr(graph, "ask", lambda question: {"answer": "x", "sources": [], "tool_calls": [], "latency_ms": 1, "tokens": 1})
+
+    assert client.post("/ask", json={"question": "Hallo"}).status_code == 401
+    assert client.post("/ask", json={"question": "Hallo"}, headers={"X-API-Key": "wrong"}).status_code == 401
+    assert client.post("/ask", json={"question": "Hallo"}, headers={"X-API-Key": "secret"}).status_code == 200
+
+
+def test_health_needs_no_key(monkeypatch):
+    monkeypatch.setattr(config, "APP_API_KEY", "secret")
+
+    assert client.get("/health").status_code == 200

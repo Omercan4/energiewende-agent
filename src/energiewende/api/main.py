@@ -5,9 +5,12 @@
 Then open http://127.0.0.1:8000/docs to try it in the browser.
 """
 
-from fastapi import FastAPI
+import secrets
+
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from energiewende import config
 from energiewende.agent import graph
 
 app = FastAPI(title="Energiewende Agent")
@@ -32,6 +35,8 @@ def health():
 
 
 @app.post("/ask", response_model=Answer)
-def ask(body: Question):
-    """Ask the agent one question."""
+def ask(body: Question, x_api_key: str | None = Header(default=None)):
+    """Ask the agent one question. Needs the header X-API-Key if the server has APP_API_KEY set."""
+    if config.APP_API_KEY and not secrets.compare_digest(x_api_key or "", config.APP_API_KEY):
+        raise HTTPException(status_code=401, detail="Missing or wrong X-API-Key header")
     return graph.ask(body.question)

@@ -1,0 +1,3 @@
+# Send only the search index to this build.
+*
+!data/chroma

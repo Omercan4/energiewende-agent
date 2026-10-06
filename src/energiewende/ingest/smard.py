@@ -5,7 +5,7 @@ SMARD stores each series in weekly files. An index file lists the start
 time of every weekly file, in milliseconds since 1970.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from energiewende.ingest.download import get_json

@@ -6,3 +6,10 @@ requires-python = ">=3.12"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# The classic default rules: syntax errors, unused imports and names, undefined names.
+select = ["E4", "E7", "E9", "F"]

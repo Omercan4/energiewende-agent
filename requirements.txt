@@ -1,6 +1,6 @@
+# What the app needs to run (also used by the Docker image).
 requests==2.34.2
 python-dotenv==1.2.4
-pytest==9.1.1
 llama-index-core==0.14.25
 llama-index-embeddings-huggingface==0.8.0
 llama-index-vector-stores-chroma==0.6.0
@@ -12,6 +12,3 @@ langchain-core==1.6.6
 langchain-openai==1.6.7
 fastapi==0.142.2
 uvicorn==0.54.0
-httpx==0.28.1
-mlflow==3.16.1
-pyyaml==6.0.3

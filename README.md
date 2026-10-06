@@ -1,6 +1,9 @@
-# Energiewende Agent
+# German Energy Q&A Agent: LLM Tool Calling + RAG over Bundestag Papers
 
 ![CI](https://github.com/Omercan4/energiewende-agent/actions/workflows/ci.yml/badge.svg)
+
+**Status: work in progress.** A working version runs locally and on Azure; retrieval quality and the
+evaluation are still being improved (see `eval/findings.md`).
 
 An LLM agent that answers questions about the German energy system. It decides by itself whether a
 question needs **live data** (electricity prices, power generation, weather) or **documents** (what the

@@ -4,7 +4,6 @@ FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    HF_HOME=/app/hf_cache \
     PYTHONPATH=/app/src
 
 # Packages first, so Docker can reuse this layer when only the code changes.
@@ -14,7 +13,8 @@ RUN pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r requirements.txt
 
 # Download the embedding model at build time, so the container works offline.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('intfloat/multilingual-e5-small')"
+# Load it the same way the app does (through LlamaIndex), so it lands in the folder the app reads from.
+RUN python -c "from llama_index.embeddings.huggingface import HuggingFaceEmbedding; HuggingFaceEmbedding(model_name='intfloat/multilingual-e5-small')"
 ENV HF_HUB_OFFLINE=1
 
 COPY src/ src/

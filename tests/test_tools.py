@@ -94,7 +94,8 @@ def test_bundestag_search_returns_hits_and_sources(monkeypatch):
     result = tools.bundestag_search.invoke({"question": "Wasserstoff"})
 
     assert result["hits"] == [hit]
-    assert result["sources"] == ["Bundestag Drucksache 21/7 (2026-09-30): https://x/7.pdf"]
+    # Attribution as required by the DIP terms of use (4c).
+    assert result["sources"] == ["Bundestags-Drucksache 21/7 (2026-09-30), Deutscher Bundestag/Bundesrat – DIP: https://x/7.pdf"]
 
 
 def test_bundestag_search_uses_the_chosen_index_and_k(monkeypatch):

@@ -71,7 +71,7 @@ MIXED = {
 
 RESULT = {
     "answer": "Der Preis lag bei 120,50 EUR/MWh. Die Linke will die Stromsteuer auf das EU-Minimum senken.",
-    "sources": ["SMARD, price, 2026-09-15 to 2026-09-15", "Bundestag Drucksache 21/4273 (2026-02-24): https://x/4273.pdf"],
+    "sources": ["SMARD, price, 2026-09-15 to 2026-09-15", "Bundestags-Drucksache 21/4273 (2026-02-24), Deutscher Bundestag/Bundesrat – DIP: https://x/4273.pdf"],
     "tool_calls": [{"name": "price_series", "args": {}}, {"name": "bundestag_search", "args": {}}],
     "latency_ms": 100,
     "tokens": 1000,

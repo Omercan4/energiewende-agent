@@ -108,7 +108,8 @@ def bundestag_search(question: str) -> dict:
     committee reports. Use it for what parties, the government or the Bundestag
     want, plan, criticize or decided. Returns the best matching text passages."""
     hits = search.search(get_index(CHUNK_SIZE), question, k=SEARCH_K)
-    sources = [f"Bundestag Drucksache {h['number']} ({h['date']}): {h['url']}" for h in hits]
+    # Citation as required by the DIP terms of use: paper type and number, and the source "Deutscher Bundestag/Bundesrat – DIP".
+    sources = [f"Bundestags-Drucksache {h['number']} ({h['date']}), Deutscher Bundestag/Bundesrat – DIP: {h['url']}" for h in hits]
     return {"hits": hits, "sources": sorted(set(sources))}
 
 

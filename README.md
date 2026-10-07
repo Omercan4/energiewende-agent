@@ -5,6 +5,8 @@
 **Status: work in progress.** A working version runs locally and on Azure; retrieval quality and the
 evaluation are still being improved (see `eval/findings.md`).
 
+**Live demo:** https://energiewende-agent.lemontree-ccdfb396.germanywestcentral.azurecontainerapps.io (German chat page; the access code is available on request)
+
 An LLM agent that answers questions about the German energy system. It decides by itself whether a
 question needs **live data** (electricity prices, power generation, weather) or **documents** (what the
 Bundestag decided or debated), calls the right tools, and answers with sources.
@@ -98,8 +100,7 @@ The LLM can be any OpenAI-compatible endpoint (`LLM_BASE_URL`, `LLM_API_KEY`, `L
 
 ## Deploy to Azure
 
-Live: https://energiewende-agent.lemontree-ccdfb396.germanywestcentral.azurecontainerapps.io
-(a chat page in German; asking needs an access code, see below; the API is at `/docs`).
+Live: https://energiewende-agent.lemontree-ccdfb396.germanywestcentral.azurecontainerapps.io (API for developers: `/docs`).
 
 
 `scripts/deploy_azure.sh` builds the image for `linux/amd64` with the search index inside (`Dockerfile.azure`),

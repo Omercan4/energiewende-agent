@@ -24,8 +24,6 @@
     main { max-width: 760px; margin: 0 auto; padding: 24px 16px 40px; }
     h1 { font-size: 1.6rem; margin: 0 0 4px; }
     .intro { color: var(--muted); margin: 0 0 16px; }
-    .code { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; font-size: 0.9rem; color: var(--muted); }
-    .code input { width: 220px; }
     input, textarea, button { font: inherit; color: inherit; }
     input, textarea {
       background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
@@ -54,17 +52,32 @@
     }
     form button:disabled { opacity: 0.6; cursor: wait; }
     footer { margin-top: 32px; font-size: 0.8rem; color: var(--muted); }
+    .gate { max-width: 380px; margin: 18vh auto 0; text-align: center; }
+    .gate form { margin-top: 16px; }
+    .gate input { flex: 1; }
+    .gate button { padding: 10px 18px; }
+    .status { min-height: 1.5em; margin-top: 12px; font-size: 0.9rem; color: var(--muted); }
+    .status.error { color: var(--error); }
   </style>
 </head>
 <body>
-<main>
+<!-- Start screen: asks for the access code before the chat is shown. -->
+<section id="gate" class="gate">
+  <h1>Energie-Fragen-Agent</h1>
+  <p class="intro">Dieser Demo-Zugang ist geschützt. Den Zugangscode gibt es auf Anfrage.</p>
+  <form id="gate-form">
+    <input id="code" type="password" autocomplete="off" placeholder="Zugangscode">
+    <button id="gate-button" type="submit">Weiter</button>
+  </form>
+  <p id="gate-status" class="status"></p>
+</section>
+
+<main id="app" hidden>
   <h1>Energie-Fragen-Agent</h1>
   <p class="intro">
     Fragen Sie nach Strompreisen, Stromerzeugung, Wetter oder nach Bundestagsdrucksachen zur Energiepolitik.
     Der Agent sucht sich die passenden Daten selbst und nennt seine Quellen. Jede Frage wird einzeln beantwortet.
   </p>
-
-  <label class="code">Zugangscode <input id="code" type="password" autocomplete="off" placeholder="falls nötig"></label>
 
   <div class="examples">
     <button type="button">Wie hoch war der Strompreis gestern im Durchschnitt?</button>
@@ -89,17 +102,74 @@
 </main>
 
 <script>
+  const gate = document.getElementById("gate");
+  const gateForm = document.getElementById("gate-form");
+  const gateButton = document.getElementById("gate-button");
+  const gateStatus = document.getElementById("gate-status");
+  const codeField = document.getElementById("code");
+  const app = document.getElementById("app");
   const chat = document.getElementById("chat");
   const form = document.getElementById("form");
   const questionBox = document.getElementById("question");
   const sendButton = document.getElementById("send");
-  const codeField = document.getElementById("code");
 
-  // Remember the access code in this browser only.
-  try { codeField.value = localStorage.getItem("accessCode") || ""; } catch (e) {}
-  codeField.addEventListener("change", () => {
-    try { localStorage.setItem("accessCode", codeField.value.trim()); } catch (e) {}
+  let accessCode = "";  // the accepted code, sent with every question
+
+  // The code is remembered in this browser only.
+  function savedCode() {
+    try { return localStorage.getItem("accessCode") || ""; } catch (e) { return ""; }
+  }
+  function saveCode(code) {
+    try { code ? localStorage.setItem("accessCode", code) : localStorage.removeItem("accessCode"); } catch (e) {}
+  }
+
+  function showGate(message, isError) {
+    app.hidden = true;
+    gate.hidden = false;
+    gateStatus.textContent = message || "";
+    gateStatus.className = isError ? "status error" : "status";
+    codeField.focus();
+  }
+
+  function openChat() {
+    gate.hidden = true;
+    app.hidden = false;
+    questionBox.focus();
+  }
+
+  // Ask the server if the code is right (this does not use the LLM).
+  // quiet = true: a wrong saved code just shows the empty start screen, without an error.
+  async function tryCode(code, quiet) {
+    gateButton.disabled = true;
+    gateStatus.className = "status";
+    gateStatus.textContent = "Verbinde … (nach einer Pause kann das bis zu 30 s dauern)";
+    try {
+      const headers = code ? { "X-API-Key": code } : {};
+      const response = await fetch("/check-access", { headers: headers });
+      if (response.ok) {
+        accessCode = code;
+        saveCode(code);
+        openChat();
+      } else if (response.status === 401) {
+        saveCode("");
+        showGate(quiet ? "" : "Der Zugangscode ist falsch.", !quiet);
+      } else {
+        showGate("Der Server startet gerade. Bitte in ein paar Sekunden erneut versuchen.", true);
+      }
+    } catch (error) {
+      showGate("Keine Verbindung zum Server. Bitte erneut versuchen.", true);
+    } finally {
+      gateButton.disabled = false;
+    }
+  }
+
+  gateForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    tryCode(codeField.value.trim(), false);
   });
+
+  // On page load: try the saved code (or no code, for a server without a code).
+  tryCode(savedCode(), true);
 
   // Add a chat bubble. textContent keeps the text as plain text (no HTML from the answer).
   function addBubble(kind, text) {
@@ -155,12 +225,13 @@
     sendButton.disabled = true;
 
     const headers = { "Content-Type": "application/json" };
-    if (codeField.value.trim()) headers["X-API-Key"] = codeField.value.trim();
+    if (accessCode) headers["X-API-Key"] = accessCode;
 
     try {
       const response = await fetch("/ask", { method: "POST", headers: headers, body: JSON.stringify({ question: question }) });
       if (response.status === 401) {
-        showError(bubble, "Zugangscode fehlt oder ist falsch.");
+        saveCode("");
+        showGate("Der Zugangscode ist nicht mehr gültig. Bitte neu eingeben.", true);
       } else if (!response.ok) {
         showError(bubble, "Etwas ist schiefgelaufen (Fehler " + response.status + "). Bitte erneut versuchen.");
       } else {

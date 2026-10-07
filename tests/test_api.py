@@ -51,3 +51,17 @@ def test_main_page_is_the_chat_page():
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "Zugangscode" in response.text
+
+
+def test_check_access_accepts_only_the_right_key(monkeypatch):
+    monkeypatch.setattr(config, "APP_API_KEY", "secret")
+
+    assert client.get("/check-access").status_code == 401
+    assert client.get("/check-access", headers={"X-API-Key": "wrong"}).status_code == 401
+    assert client.get("/check-access", headers={"X-API-Key": "secret"}).json() == {"ok": True}
+
+
+def test_check_access_is_open_when_no_key_is_set(monkeypatch):
+    monkeypatch.setattr(config, "APP_API_KEY", "")
+
+    assert client.get("/check-access").json() == {"ok": True}

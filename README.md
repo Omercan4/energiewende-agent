@@ -86,7 +86,7 @@ PYTHONPATH=src .venv/bin/python scripts/build_index.py   # downloads the papers,
 docker compose up -d
 ```
 
-- Chat page: http://localhost:8000 (leave the access code empty locally)
+- Chat page: http://localhost:8000 (without `APP_API_KEY` in `.env` it opens the chat directly)
 - API for developers: http://localhost:8000/docs (`POST /ask` → *Try it out*)
 - MLflow: http://localhost:5001, switch to **Model training** to see the evaluation runs
   (port 5000 is taken by AirPlay on macOS)
@@ -109,8 +109,9 @@ its own LLM, `gpt-5-mini` on Azure OpenAI; only the environment variables change
 - The app **scales to zero**: no costs while nobody uses it. The first request after a pause waits for the
   container to start (measured: 22 s); then a question takes about 6-17 s (`gpt-5-mini` is a reasoning model,
   slower than `gemini-2.5-flash` locally).
-- `POST /ask` needs the header `X-API-Key` (set `AZURE_APP_API_KEY` in `.env`). On the chat page this is the
-  *Zugangscode* field; the browser remembers it. The page, `/health` and `/docs` stay open.
+- `POST /ask` needs the header `X-API-Key` (set `AZURE_APP_API_KEY` in `.env`). The chat page asks for this
+  *Zugangscode* first (checked by `GET /check-access`, no LLM call) and shows the chat only after a valid code;
+  the browser remembers it. `/health` and `/docs` stay open.
 
 ## Data sources and licenses
 

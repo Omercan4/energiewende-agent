@@ -43,3 +43,11 @@ def test_health_needs_no_key(monkeypatch):
     monkeypatch.setattr(config, "APP_API_KEY", "secret")
 
     assert client.get("/health").status_code == 200
+
+
+def test_main_page_is_the_chat_page():
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Zugangscode" in response.text

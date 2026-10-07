@@ -2,18 +2,22 @@
 
     PYTHONPATH=src .venv/bin/uvicorn energiewende.api.main:app --reload
 
-Then open http://127.0.0.1:8000/docs to try it in the browser.
+Then open http://127.0.0.1:8000 for the chat page, or /docs for the API.
 """
 
 import secrets
+from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from energiewende import config
 from energiewende.agent import graph
 
 app = FastAPI(title="Energiewende Agent")
+
+CHAT_PAGE = Path(__file__).parent / "static" / "index.html"
 
 
 class Question(BaseModel):
@@ -26,6 +30,12 @@ class Answer(BaseModel):
     tool_calls: list[dict]
     latency_ms: int
     tokens: int
+
+
+@app.get("/", include_in_schema=False)
+def chat_page():
+    """The chat page for users. Developers use /docs."""
+    return FileResponse(CHAT_PAGE)
 
 
 @app.get("/health")

@@ -176,6 +176,10 @@ its own LLM, `gpt-5-mini` on Azure OpenAI; only the environment variables change
   *Zugangscode* first (checked by `GET /check-access`, no LLM call) and shows the chat only after a valid code;
   the browser remembers it. `/health` and `/docs` stay open.
 
+## Security
+
+A `secret-scan` workflow (gitleaks) checks the full git history for API keys and tokens on every push and once a week. Keys live only in `.env`, which is git-ignored.
+
 ## Data sources and licenses
 
 | Data | Source | License |

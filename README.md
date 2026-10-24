@@ -101,7 +101,7 @@ What it shows (details in `eval/findings.md`):
 ### v0.2 (24 Oct 2026)
 
 Changes: `summarize()` names hourly and daily numbers explicitly, search filters (party, paper type), an optional reranker,
-a `price_forecast` tool, 5 new questions. The gateway removed the old agent model, so the **agent is now
+a `price_forecast` tool, 5 new questions. The new **agent is now
 `claude-sonnet-5.5` and the judge `gemini-3.8-flash`** (another family than the agent). **These rows are not comparable
 with the rows above.**
 

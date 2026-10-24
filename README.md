@@ -31,13 +31,29 @@ Questions outside the topic are declined ("Ich kann nur Fragen zur deutschen Ene
 
 ## How it works
 
-```
-client -> FastAPI (/ask) -> LangGraph agent (OpenAI-compatible LLM, tool calling)
-            tools: price_series, generation_load, weather   -> SMARD / Open-Meteo (cached)
-                   price_forecast                            -> forecast of tomorrow (JSON from the forecast project)
-                   bundestag_search (party, paper type)      -> LlamaIndex retriever over Chroma, optional reranker
-offline:    scripts/build_index.py builds the index -> data/chroma
-tracking:   eval/run_eval.py logs evaluation runs to MLflow
+```mermaid
+flowchart TB
+    user([Question<br/>chat page or API]) --> api[FastAPI<br/>POST /ask]
+    api --> agent{{"LangGraph agent<br/>the LLM decides which tools to call<br/>at most 10 steps"}}
+    agent -->|numbers| data["price_series<br/>generation_load<br/>weather"]
+    agent -->|future prices| fc["price_forecast"]
+    agent -->|policy questions| rag["bundestag_search<br/>filters: party, paper type<br/>optional reranker"]
+    data --> ext1[("SMARD and<br/>Open-Meteo<br/>cached on disk")]
+    fc --> ext2[("forecast JSON of<br/>energy-price-forecast")]
+    rag --> idx[("Chroma index<br/>99 Bundestag papers")]
+    ext1 & ext2 & idx --> answer(["Answer + sources<br/>sources are built by code,<br/>numbers are computed by tools"])
+
+    subgraph check [Measure and check]
+        direction LR
+        ev["eval/run_eval.py<br/>35 questions + LLM judge"] --> mlf[("MLflow runs")]
+        ci["GitHub Actions<br/>ruff, tests, docker build"]
+    end
+    subgraph deploy [Deploy]
+        direction LR
+        dock["Docker image"] --> acr["Azure Container<br/>Registry"] --> aca["Azure Container Apps<br/>scales to zero<br/>Azure OpenAI"]
+    end
+    answer ~~~ check
+    answer ~~~ deploy
 ```
 
 - **The agent loop** (`src/energiewende/agent/graph.py`): the model picks tools, the tools run, the model reads

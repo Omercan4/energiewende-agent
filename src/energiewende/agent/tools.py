@@ -6,7 +6,7 @@ Every result has a "sources" list, so the answer can name where the data is from
 """
 
 import functools
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from langchain_core.tools import tool
@@ -30,6 +30,11 @@ SUMMARY_NOTE = (
     "mean_total_per_complete_day is the average daily total over complete days (use it for 'per day'). "
     "Days with complete=false have missing hours (for example today): say so, and do not treat them as full days."
 )
+
+
+def today():
+    """Today's date. A function, so tests can fix it."""
+    return date.today()
 
 
 def summarize(points, key="value"):
@@ -145,12 +150,16 @@ def price_forecast() -> dict:
     and for each hour the median forecast with an 80 % interval (q10 to q90). It is a forecast, not a fact."""
     data = get_json(config.FORECAST_URL, max_age_hours=1)
     hours = [{"hour": h["hour"], "q10": h["q10"], "q50": h["q50"], "q90": h["q90"]} for h in data["hours"]]
+    tomorrow = (today() + timedelta(days=1)).isoformat()
+    result_note = data["note"]
+    if data["target_day"] != tomorrow:  # the daily job has not produced the newest forecast yet
+        result_note += f" WARNING: this forecast is for {data['target_day']}, not for tomorrow ({tomorrow}). Say so in the answer."
     return {
         "target_day": data["target_day"],
         "unit": data["unit"],
         "summary": data["summary"],
         "hours": hours,
-        "note": data["note"],
+        "note": result_note,
         "sources": [
             f"Prognosemodell (LightGBM, Backtest-MAE {data['model']['backtest_mae']} EUR/MWh), Prognose für {data['target_day']}; "
             "Daten: Bundesnetzagentur | SMARD.de (CC BY 4.0), Open-Meteo.com (CC BY 4.0)"

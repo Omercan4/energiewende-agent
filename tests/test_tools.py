@@ -1,3 +1,5 @@
+from datetime import date
+
 from energiewende.agent import tools
 
 POINTS = [
@@ -206,6 +208,7 @@ FORECAST = {
 
 def test_price_forecast_returns_the_summary_the_interval_and_a_source(monkeypatch):
     monkeypatch.setattr(tools, "get_json", lambda url, max_age_hours: FORECAST)
+    monkeypatch.setattr(tools, "today", lambda: date(2026, 10, 24))
 
     result = tools.price_forecast.invoke({})
 
@@ -217,3 +220,12 @@ def test_price_forecast_returns_the_summary_the_interval_and_a_source(monkeypatc
 
 def test_price_forecast_is_one_of_the_data_tools():
     assert tools.price_forecast in tools.DATA_TOOLS
+
+
+def test_an_old_forecast_comes_with_a_warning(monkeypatch):
+    monkeypatch.setattr(tools, "get_json", lambda url, max_age_hours: FORECAST)
+    monkeypatch.setattr(tools, "today", lambda: date(2026, 10, 25))  # the forecast is for the 25th, so it is no longer "tomorrow"
+
+    result = tools.price_forecast.invoke({})
+
+    assert "WARNING" in result["note"] and "2026-10-26" in result["note"]

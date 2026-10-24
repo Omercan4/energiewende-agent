@@ -1,0 +1,9 @@
+{
+ "baseline (vector search only)": {
+  "hit@1": 0.45,
+  "hit@3": 0.7,
+  "hit@6": 0.85,
+  "MRR": 0.57,
+  "questions": 20
+ }
+}

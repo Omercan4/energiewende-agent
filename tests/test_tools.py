@@ -130,7 +130,7 @@ def test_weather_summarizes_each_variable(monkeypatch):
 def test_bundestag_search_returns_hits_and_sources(monkeypatch):
     hit = {"number": "21/7", "date": "2026-09-30", "title": "Titel", "url": "https://x/7.pdf", "score": 0.8, "text": "Text"}
     monkeypatch.setattr(tools, "get_index", lambda chunk_size: "fake index")
-    monkeypatch.setattr(tools.search, "search", lambda index, question, k: [hit])
+    monkeypatch.setattr(tools.search, "search", lambda index, question, k, **kwargs: [hit])
 
     result = tools.bundestag_search.invoke({"question": "Wasserstoff"})
 
@@ -146,7 +146,7 @@ def test_bundestag_search_uses_the_chosen_index_and_k(monkeypatch):
         used["chunk_size"] = chunk_size
         return "fake index"
 
-    def fake_search(index, question, k):
+    def fake_search(index, question, k, **kwargs):
         used["k"] = k
         return []
 
@@ -158,3 +158,37 @@ def test_bundestag_search_uses_the_chosen_index_and_k(monkeypatch):
     tools.bundestag_search.invoke({"question": "Wasserstoff"})
 
     assert used == {"chunk_size": 300, "k": 6}
+
+
+def test_bundestag_search_passes_party_and_paper_type_on(monkeypatch):
+    seen = {}
+
+    def fake_search(index, question, k, **kwargs):
+        seen.update(kwargs)
+        return []
+
+    monkeypatch.setattr(tools, "get_index", lambda chunk_size: "fake index")
+    monkeypatch.setattr(tools.search, "search", fake_search)
+    monkeypatch.setattr(tools, "USE_FILTERS", True)
+    monkeypatch.setattr(tools, "USE_RERANKER", False)
+
+    tools.bundestag_search.invoke({"question": "EEG", "party": "afd", "paper_type": "Antrag"})
+
+    assert seen == {"party": "afd", "paper_type": "Antrag", "reranker": None}
+
+
+def test_filters_can_be_switched_off_for_the_evaluation(monkeypatch):
+    seen = {}
+
+    def fake_search(index, question, k, **kwargs):
+        seen.update(kwargs)
+        return []
+
+    monkeypatch.setattr(tools, "get_index", lambda chunk_size: "fake index")
+    monkeypatch.setattr(tools.search, "search", fake_search)
+    monkeypatch.setattr(tools, "USE_FILTERS", False)
+    monkeypatch.setattr(tools, "USE_RERANKER", False)
+
+    tools.bundestag_search.invoke({"question": "EEG", "party": "afd"})
+
+    assert seen["party"] is None and seen["paper_type"] is None

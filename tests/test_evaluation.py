@@ -140,3 +140,9 @@ def test_judge_knows_todays_date_and_ignores_numbers():
     prompt = recording.messages[0].content
     assert "2026-10-05" in prompt
     assert "numbers" in prompt
+
+
+def test_negative_numbers_with_unicode_minus_signs_are_read_as_negative():
+    for text in ["Der Preis lag bei -0,24 EUR/MWh", "Der Preis lag bei \u22120,24 EUR/MWh", "Der Preis lag bei \u20110,24 EUR/MWh"]:
+        assert evaluation.number_found(-0.24, text)
+        assert not evaluation.number_found(0.24, text)

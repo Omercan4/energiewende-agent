@@ -85,3 +85,95 @@ def test_search_returns_text_and_source(tmp_path):
     assert hit["url"] == "https://example.com/7.pdf"
     assert "Strompreis" in hit["text"]
     assert isinstance(hit["score"], float)
+
+
+class FakeNode:
+    """Looks like a LlamaIndex search hit."""
+
+    def __init__(self, number, authors, paper_type, text, score):
+        self.metadata = {"number": number, "date": "2026-09-30", "title": "Titel", "url": f"https://x/{number}.pdf",
+                         "authors": authors, "type": paper_type}
+        self.score = score
+        self._text = text
+
+    def get_content(self):
+        return self._text
+
+
+class FakeIndex:
+    """Remembers how many hits were asked for and returns the nodes it was given."""
+
+    def __init__(self, nodes):
+        self.nodes = nodes
+        self.asked_for = None
+
+    def as_retriever(self, similarity_top_k):
+        self.asked_for = similarity_top_k
+        index = self
+
+        class Retriever:
+            def retrieve(self, question):
+                return index.nodes[:similarity_top_k]
+
+        return Retriever()
+
+
+NODES = [
+    FakeNode("21/1", "Fraktion der AfD", "Antrag", "AfD Antrag zur Kernenergie", 0.9),
+    FakeNode("21/2", "Bundesregierung", "Gesetzentwurf", "Gesetzentwurf zum EEG", 0.8),
+    FakeNode("21/3", "Fraktion BÜNDNIS 90/DIE GRÜNEN", "Antrag", "Grüner Antrag zum Heizen", 0.7),
+    FakeNode("21/4", "Fraktion der AfD", "Kleine Anfrage", "AfD Anfrage zum EEG", 0.6),
+]
+
+
+def test_search_without_filters_asks_for_exactly_k():
+    index = FakeIndex(NODES)
+
+    hits = search.search(index, "EEG", k=2)
+
+    assert index.asked_for == 2
+    assert [h["number"] for h in hits] == ["21/1", "21/2"]
+
+
+def test_party_filter_keeps_only_papers_of_that_party():
+    index = FakeIndex(NODES)
+
+    hits = search.search(index, "EEG", k=4, party="afd")
+
+    assert [h["number"] for h in hits] == ["21/1", "21/4"]
+    assert index.asked_for == search.FETCH_K  # looks at more candidates, because filtering removes some
+
+
+def test_paper_type_filter():
+    hits = search.search(FakeIndex(NODES), "EEG", k=4, paper_type="Antrag")
+
+    assert [h["number"] for h in hits] == ["21/1", "21/3"]
+
+
+def test_filters_can_be_combined():
+    hits = search.search(FakeIndex(NODES), "EEG", k=4, party="afd", paper_type="Kleine Anfrage")
+
+    assert [h["number"] for h in hits] == ["21/4"]
+
+
+def test_unknown_party_is_rejected_with_the_allowed_values():
+    try:
+        search.search(FakeIndex(NODES), "EEG", party="cdu")
+        assert False, "should have raised"
+    except ValueError as error:
+        assert "afd" in str(error) and "gruene" in str(error)
+
+
+def test_reranker_changes_the_order_and_keeps_the_best_k():
+    class FakeReranker:
+        def predict(self, pairs):
+            # prefers texts that mention "EEG"
+            return [1.0 if "EEG" in text else 0.0 for _, text in pairs]
+
+    index = FakeIndex(NODES)
+
+    hits = search.search(index, "EEG", k=2, reranker=FakeReranker())
+
+    assert [h["number"] for h in hits] == ["21/2", "21/4"]
+    assert index.asked_for == search.FETCH_K
+    assert hits[0]["score"] == 1.0

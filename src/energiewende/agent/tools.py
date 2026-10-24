@@ -7,14 +7,18 @@ Every result has a "sources" list, so the answer can name where the data is from
 
 import functools
 from datetime import date
+from typing import Optional
 
 from langchain_core.tools import tool
 
+from energiewende import config
 from energiewende.index import search, store
 from energiewende.ingest import openmeteo, smard
 
 SEARCH_K = 4  # how many text passages bundestag_search returns
 CHUNK_SIZE = 400  # which search index bundestag_search uses (there is one per chunk size)
+USE_FILTERS = True  # False: ignore the party / paper_type arguments (for the evaluation)
+USE_RERANKER = bool(config.RERANKER_MODEL)  # False: no second sorting step (for the evaluation)
 
 
 COMPLETE_DAY_HOURS = (23, 24, 25)  # 23 and 25 hours happen on the two daylight saving days
@@ -132,12 +136,30 @@ def get_index(chunk_size):
     return store.load_index(chunk_size)
 
 
+@functools.cache
+def get_reranker():
+    """The reranker model, loaded once on first use."""
+    from sentence_transformers import CrossEncoder  # imported here: it is heavy and optional
+
+    return CrossEncoder(config.RERANKER_MODEL, max_length=512)
+
+
 @tool
-def bundestag_search(question: str) -> dict:
+def bundestag_search(question: str, party: Optional[str] = None, paper_type: Optional[str] = None) -> dict:
     """Search Bundestag printed papers (Drucksachen) on energy topics: laws, motions,
     committee reports. Use it for what parties, the government or the Bundestag
-    want, plan, criticize or decided. Returns the best matching text passages."""
-    hits = search.search(get_index(CHUNK_SIZE), question, k=SEARCH_K)
+    want, plan, criticize or decided. Returns the best matching text passages.
+    If the question is about one party's position, set party to one of: afd, gruene, linke,
+    bundesregierung, ausschuss. If it asks for a certain kind of paper, set paper_type to one of:
+    Gesetzentwurf, Antrag, Kleine Anfrage, Antwort, Beschlussempfehlung und Bericht, Unterrichtung."""
+    hits = search.search(
+        get_index(CHUNK_SIZE),
+        question,
+        k=SEARCH_K,
+        party=party if USE_FILTERS else None,
+        paper_type=paper_type if USE_FILTERS else None,
+        reranker=get_reranker() if USE_RERANKER else None,
+    )
     # Citation as required by the DIP terms of use: paper type and number, and the source "Deutscher Bundestag/Bundesrat – DIP".
     sources = [f"Bundestags-Drucksache {h['number']} ({h['date']}), Deutscher Bundestag/Bundesrat – DIP: {h['url']}" for h in hits]
     return {"hits": hits, "sources": sorted(set(sources))}

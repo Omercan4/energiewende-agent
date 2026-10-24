@@ -36,6 +36,9 @@ NUMBER = re.compile(r"-?\d[\d.,]*\d|-?\d")
 def numbers_in(text):
     """All numbers in a text. German (1.234,5) and English (1,234.5) style are both tried."""
     found = []
+    # Models sometimes write a minus sign as a real minus (U+2212) or a non-breaking hyphen (U+2011).
+    # Without this, "‑0,24" would be read as +0,24 and a correct negative price would be marked wrong.
+    text = text.replace("\u2212", "-").replace("\u2011", "-")
     for token in NUMBER.findall(text):
         german = token.replace(".", "").replace(",", ".")
         english = token.replace(",", "")

@@ -1,7 +1,7 @@
 """The tools the agent can use.
 
 Each tool returns a small dict. The data tools compute mean, min, max and total
-in Python, because LLMs make mistakes when they add up many numbers.
+in Python (with explicit names: per hour, per complete day), because LLMs make mistakes when they add up many numbers.
 Every result has a "sources" list, so the answer can name where the data is from.
 """
 
@@ -17,8 +17,23 @@ SEARCH_K = 4  # how many text passages bundestag_search returns
 CHUNK_SIZE = 400  # which search index bundestag_search uses (there is one per chunk size)
 
 
+COMPLETE_DAY_HOURS = (23, 24, 25)  # 23 and 25 hours happen on the two daylight saving days
+
+SUMMARY_NOTE = (
+    "mean_per_hour is the average of the hourly values, NOT a daily value. "
+    "total is the sum of all hours (energy series only). "
+    "mean_total_per_complete_day is the average daily total over complete days (use it for 'per day'). "
+    "Days with complete=false have missing hours (for example today): say so, and do not treat them as full days."
+)
+
+
 def summarize(points, key="value"):
-    """Mean, min, max and total of all points, and the same per day."""
+    """Statistics over the whole range and per day.
+
+    Names say what they are: mean_per_hour is the average of the hourly values, total is their sum.
+    Each day knows how many hours it has and whether it is complete, so a partial day (today, or a
+    day with a gap in the data) can never be mistaken for a full day.
+    """
     points = [p for p in points if p[key] is not None]
     if not points:
         raise ValueError("No data for this time range. It may be in the future or not published yet.")
@@ -28,18 +43,32 @@ def summarize(points, key="value"):
     for p in points:
         days.setdefault(p["time"][:10], []).append(p[key])
     daily = [
-        {"date": day, "mean": round(sum(v) / len(v), 2), "min": min(v), "max": max(v), "total": round(sum(v), 2)}
+        {
+            "date": day,
+            "hours": len(v),
+            "complete": len(v) in COMPLETE_DAY_HOURS,
+            "mean_per_hour": round(sum(v) / len(v), 2),
+            "min": min(v),
+            "max": max(v),
+            "total": round(sum(v), 2),
+        }
         for day, v in days.items()
     ]
+    complete = [day for day in daily if day["complete"]]
 
     lowest = min(points, key=lambda p: p[key])
     highest = max(points, key=lambda p: p[key])
     return {
-        "mean": round(sum(values) / len(values), 2),
+        "mean_per_hour": round(sum(values) / len(values), 2),
         "min": {"time": lowest["time"], "value": lowest[key]},
         "max": {"time": highest["time"], "value": highest[key]},
         "total": round(sum(values), 2),
+        "hours": len(values),
+        "complete_days": len(complete),
+        "incomplete_days": [day["date"] for day in daily if not day["complete"]],
+        "mean_total_per_complete_day": round(sum(day["total"] for day in complete) / len(complete), 2) if complete else None,
         "daily": daily,
+        "note": SUMMARY_NOTE,
     }
 
 
@@ -62,7 +91,7 @@ def data_result(raw, start, end, name):
 def price_series(start: str, end: str) -> dict:
     """Day-ahead wholesale electricity price in Germany/Luxembourg in EUR/MWh.
     Dates as YYYY-MM-DD, both included, at most 31 days.
-    Returns mean, min, max per day and overall (hourly values for up to 2 days)."""
+    Returns mean_per_hour (the average price), min, max per day and overall (hourly values for up to 2 days)."""
     raw = smard.get_series("price", date.fromisoformat(start), date.fromisoformat(end))
     return data_result(raw, start, end, "price")
 
@@ -72,7 +101,8 @@ def generation_load(series: str, start: str, end: str) -> dict:
     """Electricity generation by source or total consumption in Germany, in MWh per hour.
     series is one of: load, wind_onshore, wind_offshore, solar, lignite, hard_coal, natural_gas.
     Dates as YYYY-MM-DD, both included, at most 31 days.
-    Returns mean, min, max and total per day and overall (hourly values for up to 2 days)."""
+    Returns mean_per_hour, min, max and total per day and overall, and mean_total_per_complete_day for
+    questions 'per day' (hourly values for up to 2 days). Partial days are marked complete=false."""
     if series == "price":
         raise ValueError("For prices use the price_series tool.")
     raw = smard.get_series(series, date.fromisoformat(start), date.fromisoformat(end))
@@ -84,7 +114,7 @@ def weather(region: str, start: str, end: str) -> dict:
     """Hourly weather: wind speed at 100 m, solar radiation, temperature.
     region is one of: north_sea, berlin, cologne, munich.
     Dates as YYYY-MM-DD, both included, at most 31 days.
-    Returns mean, min, max per day and overall for each variable."""
+    Returns mean_per_hour, min, max per day and overall for each variable."""
     raw = openmeteo.get_weather(region, date.fromisoformat(start), date.fromisoformat(end))
     return {
         "region": region,

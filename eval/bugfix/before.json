@@ -1,0 +1,23 @@
+[
+  {
+    "id": "n11",
+    "question": "Wie viel Windstrom an Land wurde in der Woche vom 7. bis 13. September 2026 im Durchschnitt pro Tag erzeugt?",
+    "expected": 245148.38,
+    "answer": "Einen Tagesdurchschnitt für die Woche liefert das Tool nicht direkt, und ich rechne ihn nicht selbst aus. Es gibt aber diese Werte für den 7. bis 13. September 2026:\n\n- **Durchschnitt:** 10.214,52 MWh pro Stunde.\n- **Gesamterzeugung der Woche:** 1.716.038,68 MWh.\n\n**Tagessummen (MWh):**\n\n| Tag | Summe |\n|---|---|\n| 7.9. | 281.715,42 |\n| 8.9. | 315.483,35 |\n| 9.9. | 498.733,24 |\n| 10.9. | 157.636,24 |\n| 11.9. | 117.966,33 |\n| 12.9. | 104.422,67 |\n| 13.9. | 240.081,43 |\n\nDer windstärkste Tag war der 9.9., der schwächste der 12.9.\n\nQuelle: Bundesnetzagentur | SMARD.de.",
+    "number_correct": false
+  },
+  {
+    "id": "n12",
+    "question": "Wie hoch war der durchschnittliche Stromverbrauch pro Stunde am 15. September 2026?",
+    "expected": 55134.64,
+    "answer": "Am 15. September 2026 lag der durchschnittliche Stromverbrauch in Deutschland bei etwa **55.135 MWh pro Stunde**. Das ist der Mittelwert aus den Stundenwerten dieses Tages.\n\n- **Minimum:** 43.994 MWh, um 02:00 Uhr.\n- **Maximum:** 62.397 MWh, um 09:00 Uhr.\n- **Gesamtverbrauch des Tages:** 1.323.231 MWh.\n\nQuelle: Bundesnetzagentur, SMARD.de.",
+    "number_correct": true
+  },
+  {
+    "id": "n13",
+    "question": "Wie viel Strom wurde am 15. September 2026 insgesamt in Deutschland verbraucht?",
+    "expected": 1323231.26,
+    "answer": "Am 15. September 2026 wurden in Deutschland insgesamt **1.323.231 MWh** Strom verbraucht. Das sind rund 1,32 TWh.\n\n- Der Durchschnitt lag bei 55.135 MWh pro Stunde.\n- Der niedrigste Wert war 43.994 MWh, um 02:00 Uhr.\n- Der höchste Wert war 62.397 MWh, um 09:00 Uhr.\n\nQuelle: Bundesnetzagentur | SMARD.de",
+    "number_correct": true
+  }
+]

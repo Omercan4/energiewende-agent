@@ -14,7 +14,7 @@
   type: number
   question: Wie hoch war der durchschnittliche Day-Ahead-Strompreis am 15. September 2026?
   tools: [price_series]
-  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean}
+  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean_per_hour}
 
 - id: n02
   type: number
@@ -44,7 +44,7 @@
   type: number
   question: Wie hoch war der durchschnittliche stündliche Stromverbrauch in Deutschland am 16. September 2026?
   tools: [generation_load]
-  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean}
+  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean_per_hour}
 
 - id: n07
   type: number
@@ -62,13 +62,33 @@
   type: number
   question: Wie hoch war die mittlere Windgeschwindigkeit in 100 m Höhe an der Nordsee am 12. September 2026?
   tools: [weather]
-  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean}
+  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean_per_hour}
 
 - id: n10
   type: number
   question: Wie hoch war die Höchsttemperatur in München am 2. September 2026?
   tools: [weather]
   check: {tool: weather, args: {region: munich, start: "2026-09-02", end: "2026-09-02"}, value: summary_by_variable.temperature_2m.max.value}
+
+# Three questions about "per hour", "per day" and "total": they catch an hourly average being reported as a daily one.
+
+- id: n11
+  type: number
+  question: Wie viel Windstrom an Land wurde in der Woche vom 7. bis 13. September 2026 im Durchschnitt pro Tag erzeugt?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: wind_onshore, start: "2026-09-07", end: "2026-09-13"}, value: summary.mean_total_per_complete_day}
+
+- id: n12
+  type: number
+  question: Wie hoch war der durchschnittliche Stromverbrauch pro Stunde am 15. September 2026?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: load, start: "2026-09-15", end: "2026-09-15"}, value: summary.mean_per_hour}
+
+- id: n13
+  type: number
+  question: Wie viel Strom wurde am 15. September 2026 insgesamt in Deutschland verbraucht?
+  tools: [generation_load]
+  check: {tool: generation_load, args: {series: load, start: "2026-09-15", end: "2026-09-15"}, value: summary.total}
 
 # ---------- text questions ----------
 
@@ -177,7 +197,7 @@
   type: mixed
   question: Wie hoch war der durchschnittliche Strompreis am 15. September 2026, und was fordert die Linke zur Stromsteuer?
   tools: [price_series, bundestag_search]
-  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean}
+  check: {tool: price_series, args: {start: "2026-09-15", end: "2026-09-15"}, value: summary.mean_per_hour}
   gold: ["21/4273"]
   facts: >-
     Motion 21/4273 (Die Linke): lower the electricity tax from 2.05 cent/kWh to the EU minimum of 0.1 cent/kWh
@@ -240,7 +260,7 @@
   type: mixed
   question: Wie hoch war die mittlere Windgeschwindigkeit an der Nordsee am 12. September 2026, und welche Maßnahmen gegen Netzengpässe fordert die Linke?
   tools: [weather, bundestag_search]
-  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean}
+  check: {tool: weather, args: {region: north_sea, start: "2026-09-12", end: "2026-09-12"}, value: summary_by_variable.wind_speed_100m.mean_per_hour}
   gold: ["21/7906"]
   facts: >-
     Motion 21/7906 (Die Linke): no Redispatch-Vorbehalt for renewables in capacity-limited grid areas; instead
@@ -251,7 +271,7 @@
   type: mixed
   question: Wie hoch war der durchschnittliche stündliche Stromverbrauch am 16. September 2026, und was fordern die Grünen zur 65-Prozent-Regel beim Heizen?
   tools: [generation_load, bundestag_search]
-  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean}
+  check: {tool: generation_load, args: {series: load, start: "2026-09-16", end: "2026-09-16"}, value: summary.mean_per_hour}
   gold: ["21/2724", "21/4391"]
   facts: >-
     Motion 21/2724 (Bündnis 90/Die Grünen): keep the 65 % renewable heating rule of § 71 GEG and secure it

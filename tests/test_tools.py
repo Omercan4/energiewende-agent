@@ -11,14 +11,55 @@ POINTS = [
 def test_summarize_computes_the_statistics():
     result = tools.summarize(POINTS)
 
-    assert result["mean"] == 120.0
+    assert result["mean_per_hour"] == 120.0
     assert result["min"] == {"time": "2026-10-05T00:00:00+02:00", "value": 60.0}
     assert result["max"] == {"time": "2026-10-04T01:00:00+02:00", "value": 200.0}
     assert result["total"] == 360.0
+    assert result["hours"] == 3
     assert result["daily"] == [
-        {"date": "2026-10-04", "mean": 150.0, "min": 100.0, "max": 200.0, "total": 300.0},
-        {"date": "2026-10-05", "mean": 60.0, "min": 60.0, "max": 60.0, "total": 60.0},
+        {"date": "2026-10-04", "hours": 2, "complete": False, "mean_per_hour": 150.0, "min": 100.0, "max": 200.0, "total": 300.0},
+        {"date": "2026-10-05", "hours": 1, "complete": False, "mean_per_hour": 60.0, "min": 60.0, "max": 60.0, "total": 60.0},
     ]
+
+
+def full_day(day, value):
+    return [{"time": f"{day}T{hour:02d}:00:00+02:00", "value": value} for hour in range(24)]
+
+
+def test_a_full_day_is_complete_and_has_a_daily_total():
+    result = tools.summarize(full_day("2026-10-04", 10.0) + full_day("2026-10-05", 20.0))
+
+    assert result["mean_per_hour"] == 15.0
+    assert result["complete_days"] == 2
+    assert result["incomplete_days"] == []
+    assert result["mean_total_per_complete_day"] == 360.0  # (240 + 480) / 2, the average DAY, not the average hour
+    assert result["daily"][0]["hours"] == 24 and result["daily"][0]["complete"] is True
+    assert result["daily"][0]["total"] == 240.0
+
+
+def test_a_partial_day_is_flagged_and_left_out_of_the_daily_average():
+    today = full_day("2026-10-05", 20.0)[:9]  # only 9 hours are published so far
+    result = tools.summarize(full_day("2026-10-04", 10.0) + today)
+
+    assert result["incomplete_days"] == ["2026-10-05"]
+    assert result["complete_days"] == 1
+    assert result["mean_total_per_complete_day"] == 240.0  # only the complete day counts
+    assert result["daily"][1]["complete"] is False
+    assert "complete" in result["note"].lower()
+
+
+def test_daylight_saving_days_with_23_or_25_hours_count_as_complete():
+    short = full_day("2026-03-29", 1.0)[:23]
+    long = full_day("2026-10-25", 1.0) + [{"time": "2026-10-25T24:00:00+01:00", "value": 1.0}]
+
+    assert tools.summarize(short)["daily"][0]["complete"] is True
+    assert tools.summarize(long)["daily"][0]["complete"] is True
+
+
+def test_no_complete_day_means_no_daily_average():
+    result = tools.summarize(POINTS)
+
+    assert result["mean_total_per_complete_day"] is None
 
 
 def test_summarize_explains_when_there_is_no_data():
@@ -32,7 +73,7 @@ def test_summarize_explains_when_there_is_no_data():
 def test_summarize_can_use_another_key():
     points = [{"time": "2026-10-04T00:00", "wind_speed_100m": 10.0}, {"time": "2026-10-04T01:00", "wind_speed_100m": 20.0}]
 
-    assert tools.summarize(points, key="wind_speed_100m")["mean"] == 15.0
+    assert tools.summarize(points, key="wind_speed_100m")["mean_per_hour"] == 15.0
 
 
 def fake_series(name, start, end):
@@ -45,7 +86,7 @@ def test_price_series_returns_statistics_and_source(monkeypatch):
 
     result = tools.price_series.invoke({"start": "2026-10-04", "end": "2026-10-05"})
 
-    assert result["summary"]["mean"] == 120.0
+    assert result["summary"]["mean_per_hour"] == 120.0
     assert result["hourly"] == POINTS  # short range, so hourly values are included
     assert result["sources"] == ["SMARD, price, 2026-10-04 to 2026-10-05"]
 
@@ -82,7 +123,7 @@ def test_weather_summarizes_each_variable(monkeypatch):
 
     result = tools.weather.invoke({"region": "north_sea", "start": "2026-10-04", "end": "2026-10-04"})
 
-    assert result["summary_by_variable"]["wind_speed_100m"]["mean"] == 15.0
+    assert result["summary_by_variable"]["wind_speed_100m"]["mean_per_hour"] == 15.0
     assert result["sources"] == ["Open-Meteo, north_sea, 2026-10-04 to 2026-10-04"]
 
 

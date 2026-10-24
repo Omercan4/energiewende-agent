@@ -18,6 +18,7 @@ parser.add_argument("--rag", choices=["on", "off"], default="on", help="give the
 parser.add_argument("--k", type=int, default=4, help="how many text passages the search returns")
 parser.add_argument("--chunk-size", type=int, default=400, help="which search index to use")
 parser.add_argument("--limit", type=int, help="only the first N questions, for a quick try")
+parser.add_argument("--ids", help="only these question ids, comma separated (for example n11,n12,n13)")
 args = parser.parse_args()
 
 tools.SEARCH_K = args.k
@@ -25,10 +26,14 @@ tools.CHUNK_SIZE = args.chunk_size
 rag = args.rag == "on"
 agent = graph.build_agent(graph.get_llm(), tools.TOOLS if rag else tools.DATA_TOOLS)
 judge_llm = evaluation.get_judge()
-questions = evaluation.load_questions()[: args.limit]
+questions = evaluation.load_questions()
+if args.ids:
+    wanted = args.ids.split(",")
+    questions = [q for q in questions if q["id"] in wanted]
+questions = questions[: args.limit]
 
 run_name = f"v{graph.PROMPT_VERSION}-" + (f"rag-k{args.k}-chunk{args.chunk_size}" if rag else "rag-off")
-if args.limit:
+if args.limit or args.ids:
     run_name = "try-" + run_name  # compare.py leaves out these short test runs
 
 mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)

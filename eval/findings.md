@@ -60,3 +60,37 @@ What changed:
 
 Next step for a round 3: improve retrieval (a reranker, or filters on party and paper type), then
 re-run the same settings and compare.
+
+
+# Round 3 (2026-10-24): number names, search filters, reranker, forecast tool
+
+**Setup changed, so the numbers are not comparable with rounds 1 and 2.** The gateway removed `gemini-2.5-flash`
+and `claude-haiku-4.5` answered with server errors. The agent is now `claude-sonnet-5.5`, the judge `gemini-3.8-flash`.
+
+## What was changed
+
+- `summarize()` now returns `mean_per_hour`, `mean_total_per_complete_day` and a `complete` flag per day (and says so in a `note`).
+  Before, one field `mean` sat next to the totals, and a partial day looked like a full day.
+- `bundestag_search` can filter by party (`afd`, `gruene`, `linke`, `bundesregierung`, `ausschuss`) and paper type, and can rerank.
+- New tool `price_forecast` (reads the forecast of the energy-price-forecast project). Prompt version 4.
+- Five new questions: n11 to n13 (per hour / per day / total) and n14, n15 (forecast).
+
+## What the evaluation showed
+
+- **A bug in my own scoring.** Negative prices written as "‑0,24" with a non-breaking hyphen (U+2011) were read as +0.24. Two correct
+  answers (n03, m10) were scored wrong. Fixed in `numbers_in` with a test, and all runs were repeated.
+- **The per-hour / per-day questions** (`eval/bugfix/before.json`): before the fix the agent could not answer the per-day average
+  (n11, it said the tool does not give it); after the fix all three are correct. The stronger model did not report the hourly mean as a daily value,
+  but it could not answer the daily question at all. (The earlier model did report the hourly mean as the daily one.)
+- **Filters:** same accuracy (0.97), 26 % fewer tokens (10,573 to 7,777). The latency of that run (10.5 s) was measured while a large
+  model was downloading in parallel, so it says nothing.
+- **Saturation:** with the stronger model, 32 of 33 answers are fully correct. A difference of one question is 3 points and within the
+  noise of the judge. In the final run (35 questions) m08 and m09 fail: the right paper is retrieved, but the passage with the detail is not.
+- **Search alone** (`eval/retrieval_eval.py`, no LLM): hit@1 0.45 to 0.55, hit@3 0.70 to 0.70, hit@6 0.85 to 0.80, MRR 0.570 to 0.635
+  with the multilingual `mmarco-mMiniLMv2` reranker. A gain at the top, one question lost at rank 6, not significant with 20 questions.
+  Kept optional. The larger `bge-reranker-v2-m3` was not tested (the 2 GB download kept stalling).
+
+## Next
+
+A harder question set (the current one no longer separates configurations), evaluating the query the agent sends to the search
+(it rewrites the question), and a reranker test with more questions.

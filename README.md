@@ -2,14 +2,17 @@
 
 ![CI](https://github.com/Omercan4/energiewende-agent/actions/workflows/ci.yml/badge.svg)
 
-**Status: work in progress.** A working version runs locally and on Azure; retrieval quality and the
-evaluation are still being improved (see `eval/findings.md`).
+**Status: v0.2.** Runs locally and on Azure. Evaluated on 35 questions (numbers 100 % correct, 94 % of all answers fully correct).
+The main open problem is retrieval for questions about a specific passage of a paper (see `eval/findings.md`).
 
 **Live demo:** https://energiewende-agent.lemontree-ccdfb396.germanywestcentral.azurecontainerapps.io (German chat page; the access code is available on request)
 
 An LLM agent that answers questions about the German energy system. It decides by itself whether a
-question needs **live data** (electricity prices, power generation, weather) or **documents** (what the
-Bundestag decided or debated), calls the right tools, and answers with sources.
+question needs **live data** (electricity prices, power generation, weather), a **price forecast** for tomorrow
+(from the model in [energy-price-forecast](https://github.com/Omercan4/energy-price-forecast)) or **documents**
+(what the Bundestag decided or debated), calls the right tools, and answers with sources.
+
+![The chat page answering a forecast question and a Bundestag question in one answer](docs/img/chat.jpg)
 
 The project shows the full path from idea to service: tool calling with LangGraph, retrieval (RAG) with
 LlamaIndex, a measured evaluation tracked in MLflow, Docker and CI, and a deployment on Azure.
@@ -31,14 +34,17 @@ Questions outside the topic are declined ("Ich kann nur Fragen zur deutschen Ene
 ```
 client -> FastAPI (/ask) -> LangGraph agent (OpenAI-compatible LLM, tool calling)
             tools: price_series, generation_load, weather   -> SMARD / Open-Meteo (cached)
-                   bundestag_search                          -> LlamaIndex retriever over Chroma
+                   price_forecast                            -> forecast of tomorrow (JSON from the forecast project)
+                   bundestag_search (party, paper type)      -> LlamaIndex retriever over Chroma, optional reranker
 offline:    scripts/build_index.py builds the index -> data/chroma
 tracking:   eval/run_eval.py logs evaluation runs to MLflow
 ```
 
 - **The agent loop** (`src/energiewende/agent/graph.py`): the model picks tools, the tools run, the model reads
   the results, until it answers (at most 10 steps). Tool errors go back to the model instead of crashing.
-- **Python computes, the LLM explains.** The data tools return mean, min, max and total, computed in code.
+- **Python computes, the LLM explains.** The data tools return mean, min, max and total, computed in code, with names that
+  say what they are (`mean_per_hour`, `mean_total_per_complete_day`) and a `complete` flag per day, so a partial day (today)
+  is never mistaken for a full one.
   In a first test the model averaged 24 hourly prices itself and was 7 % off (155.78 instead of 168.29).
   Since then every number in an answer comes straight from a tool.
 - **Sources are collected by code**, not written by the model, so they cannot be invented.
@@ -76,6 +82,44 @@ What it shows (details in `eval/findings.md`):
 - **The judge is noisy**: re-grading the same answers changed the text score by ±0.05, which is one question.
   Differences that small are not meaningful with 30 questions.
 
+### v0.2 (24 Oct 2026)
+
+Changes: `summarize()` names hourly and daily numbers explicitly, search filters (party, paper type), an optional reranker,
+a `price_forecast` tool, 5 new questions. The gateway removed the old agent model, so the **agent is now
+`claude-sonnet-5.5` and the judge `gemini-3.8-flash`** (another family than the agent). **These rows are not comparable
+with the rows above.**
+
+| Run (35 or 33 questions) | Tools | Hit@k | Numbers | Text | All correct | Tokens |
+| --- | --- | --- | --- | --- | --- | --- |
+| v3: baseline, k=6, chunk 300 (33 questions) | 1.00 | 1.00 | 1.00 | 0.95 | 0.97 | 10,573 |
+| v3: + party / paper-type filters (33 questions) | 1.00 | 1.00 | 1.00 | 0.95 | 0.97 | 7,777 |
+| v4: filters + forecast tool (35 questions) | 1.00 | 1.00 | 1.00 | 0.90 | 0.94 | 8,356 |
+
+- **A scoring bug of mine:** negative prices written with a non-breaking hyphen ("‑0,24") were read as positive and marked
+  wrong. Fixed with a test; all v3 and v4 runs use the fixed scoring.
+- **The per-hour / per-day fix:** three questions (per hour, per day, total). Before the fix 2 of 3 were answered correctly
+  (the per-day average could not be answered); after, 3 of 3 (`eval/bugfix/`).
+- **Filters** gave the same accuracy with 26 % fewer tokens per question.
+- **The question set is nearly saturated.** One question is 3 points, so 0.97 vs 0.94 is one question. The two misses in v4
+  (m08, m09) are retrieval: the right paper is found, but not the passage with the detail.
+- **Search alone, without an LLM** (`eval/retrieval_eval.py`, 20 questions, same numbers on every run):
+
+  | | hit@1 | hit@3 | hit@6 | MRR |
+  | --- | --- | --- | --- | --- |
+  | vector search only | 0.45 | 0.70 | 0.85 | 0.570 |
+  | + reranker (`mmarco-mMiniLMv2`, 30 candidates) | 0.55 | 0.70 | 0.80 | 0.635 |
+
+  The reranker puts a gold paper first more often (+0.10 at rank 1), but loses one question at rank 6. With 20 questions
+  that is not a significant difference, so it stays **optional and off by default**. A larger reranker (`bge-reranker-v2-m3`)
+  was not tested.
+
+## Limitations
+
+- 99 papers of the 21st electoral period, only energy-related titles. No answers about other topics.
+- The evaluation questions are written by me, and the judge is an LLM (noisy: about 1 question).
+- The forecast tool depends on the forecast service being reachable (`FORECAST_URL`). It is a model forecast, not a fact.
+- On Azure, the demo uses another model (`gpt-5-mini`) than the evaluation.
+
 ## Run it locally
 
 Needs Python 3.12 and Docker.
@@ -97,6 +141,8 @@ docker compose up -d
 - Evaluation: `PYTHONPATH=src .venv/bin/python eval/run_eval.py --k 6 --chunk-size 300`, then `eval/compare.py`
 
 The LLM can be any OpenAI-compatible endpoint (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
+Optional: `FORECAST_URL` (where the price forecast is published) and `RERANKER_MODEL` (for example
+`cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`, about 470 MB).
 
 ## Deploy to Azure
 
@@ -131,7 +177,7 @@ its own LLM, `gpt-5-mini` on Azure OpenAI; only the environment variables change
 | `src/energiewende/agent/` | The tools and the LangGraph agent loop |
 | `src/energiewende/api/` | FastAPI app (`/ask`, `/health`) and the chat page (`static/index.html`) |
 | `src/energiewende/evaluation.py` | Scoring for the evaluation (number check, LLM judge, metrics) |
-| `eval/` | Questions, run script, results and findings |
+| `eval/` | Questions, run script, results and findings; `retrieval_eval.py` tests the search alone; `bugfix/` has before/after answers |
 | `scripts/` | Build the index, ask from the command line, deploy to Azure |
 | `notebooks/` | Small interfaces for searching and asking |
 | `docs/superpowers/` | Design spec and the implementation plans (one per milestone) |

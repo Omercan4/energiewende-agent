@@ -16,6 +16,10 @@ jobs:
         run: |
           pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-dev.txt
+      - name: Make the NLTK data folder private to its owner
+        # A newer NLTK refuses to load data from a folder that other accounts can write to, and the
+        # GitHub runner creates the packages with group write permission. Without this, one index test fails.
+        run: chmod -R go-w "$(python -c 'import llama_index.core, pathlib; print(pathlib.Path(llama_index.core.__file__).parent / "_static" / "nltk_cache")')"
       - name: Lint
         run: ruff check .
       - name: Test

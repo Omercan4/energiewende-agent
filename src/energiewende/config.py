@@ -18,6 +18,10 @@ INDEX_DIR = os.environ.get("INDEX_DIR", "data/chroma")
 # Local HuggingFace model that turns text into vectors.
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
 
+# Where the price forecast of the energy-price-forecast project is published (JSON).
+# Locally you can point it to a running instance, e.g. http://127.0.0.1:8000/forecast
+FORECAST_URL = os.environ.get("FORECAST_URL", "https://omercan4.github.io/energy-price-forecast/forecast.json")
+
 # Optional second sorting step for search results (a sentence-transformers cross-encoder).
 # Empty means off. Example: BAAI/bge-reranker-v2-m3 (about 2 GB, runs on CPU).
 RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "")

@@ -90,6 +90,20 @@
   tools: [generation_load]
   check: {tool: generation_load, args: {series: load, start: "2026-09-15", end: "2026-09-15"}, value: summary.total}
 
+# Questions about the FUTURE: the expected value is computed from the same forecast the agent gets.
+
+- id: n14
+  type: number
+  question: Wie hoch wird der durchschnittliche Day-Ahead-Strompreis morgen voraussichtlich sein?
+  tools: [price_forecast]
+  check: {tool: price_forecast, args: {}, value: summary.mean_q50}
+
+- id: n15
+  type: number
+  question: Zu welcher Stunde wird der Strom morgen voraussichtlich am billigsten sein?
+  tools: [price_forecast]
+  check: {tool: price_forecast, args: {}, value: summary.cheapest_hour}
+
 # ---------- text questions ----------
 
 - id: t01

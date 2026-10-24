@@ -115,9 +115,9 @@ def test_without_rag_the_search_is_not_expected(monkeypatch):
 def test_questions_file_is_complete():
     questions = evaluation.load_questions()
 
-    assert len(questions) == 33
-    assert len({q["id"] for q in questions}) == 33
-    assert sorted(q["type"] for q in questions) == ["mixed"] * 10 + ["number"] * 13 + ["text"] * 10
+    assert len(questions) == 35
+    assert len({q["id"] for q in questions}) == 35
+    assert sorted(q["type"] for q in questions) == ["mixed"] * 10 + ["number"] * 15 + ["text"] * 10
     for q in questions:
         assert set(q["tools"]) <= {t.name for t in tools.TOOLS}
         if q["type"] in ("number", "mixed"):

@@ -22,13 +22,15 @@ from energiewende import config
 from energiewende.agent import tools
 
 MAX_STEPS = 10  # graph steps per question (each model call and each tool run is one step)
-PROMPT_VERSION = 3  # logged with each evaluation run; raise it when SYSTEM_PROMPT changes
+PROMPT_VERSION = 4  # logged with each evaluation run; raise it when SYSTEM_PROMPT changes
 
 SYSTEM_PROMPT = """You answer questions about the German energy system.
 Today is {today}.
 
 Use the tools:
 - price_series, generation_load and weather for numbers (prices, power generation, consumption, weather).
+- price_forecast for the price of tomorrow or other future prices. Say that it is a forecast with an 80 % interval, not a fact,
+  and that it is not trading advice.
 - bundestag_search for what the Bundestag, the government or the parties plan, want or criticize.
 
 Rules:

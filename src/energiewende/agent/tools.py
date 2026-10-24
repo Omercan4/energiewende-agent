@@ -14,6 +14,7 @@ from langchain_core.tools import tool
 from energiewende import config
 from energiewende.index import search, store
 from energiewende.ingest import openmeteo, smard
+from energiewende.ingest.download import get_json
 
 SEARCH_K = 4  # how many text passages bundestag_search returns
 CHUNK_SIZE = 400  # which search index bundestag_search uses (there is one per chunk size)
@@ -136,6 +137,27 @@ def get_index(chunk_size):
     return store.load_index(chunk_size)
 
 
+@tool
+def price_forecast() -> dict:
+    """Forecast of tomorrow's day-ahead electricity price in Germany (EUR/MWh), hour by hour,
+    from our own model (LightGBM). Use it for questions about FUTURE prices, for example
+    'Wie hoch wird der Strompreis morgen?'. Returns the mean, the cheapest and the most expensive hour,
+    and for each hour the median forecast with an 80 % interval (q10 to q90). It is a forecast, not a fact."""
+    data = get_json(config.FORECAST_URL, max_age_hours=1)
+    hours = [{"hour": h["hour"], "q10": h["q10"], "q50": h["q50"], "q90": h["q90"]} for h in data["hours"]]
+    return {
+        "target_day": data["target_day"],
+        "unit": data["unit"],
+        "summary": data["summary"],
+        "hours": hours,
+        "note": data["note"],
+        "sources": [
+            f"Prognosemodell (LightGBM, Backtest-MAE {data['model']['backtest_mae']} EUR/MWh), Prognose für {data['target_day']}; "
+            "Daten: Bundesnetzagentur | SMARD.de (CC BY 4.0), Open-Meteo.com (CC BY 4.0)"
+        ],
+    }
+
+
 @functools.cache
 def get_reranker():
     """The reranker model, loaded once on first use."""
@@ -165,5 +187,5 @@ def bundestag_search(question: str, party: Optional[str] = None, paper_type: Opt
     return {"hits": hits, "sources": sorted(set(sources))}
 
 
-DATA_TOOLS = [price_series, generation_load, weather]
+DATA_TOOLS = [price_series, generation_load, weather, price_forecast]
 TOOLS = DATA_TOOLS + [bundestag_search]

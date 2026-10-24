@@ -192,3 +192,28 @@ def test_filters_can_be_switched_off_for_the_evaluation(monkeypatch):
     tools.bundestag_search.invoke({"question": "EEG", "party": "afd"})
 
     assert seen["party"] is None and seen["paper_type"] is None
+
+
+FORECAST = {
+    "target_day": "2026-10-25",
+    "unit": "EUR/MWh",
+    "summary": {"mean_q50": 22.5, "min_q50": -2.3, "max_q50": 53.6, "cheapest_hour": 5, "most_expensive_hour": 18},
+    "hours": [{"time": "t", "hour": 5, "q10": -10.0, "q50": -2.3, "q90": 80.0, "temp": 1.0}],
+    "model": {"backtest_mae": 19.58, "trained_until": "x"},
+    "note": "Forecast made with information known at 12:00 the day before. Not trading advice.",
+}
+
+
+def test_price_forecast_returns_the_summary_the_interval_and_a_source(monkeypatch):
+    monkeypatch.setattr(tools, "get_json", lambda url, max_age_hours: FORECAST)
+
+    result = tools.price_forecast.invoke({})
+
+    assert result["summary"]["cheapest_hour"] == 5
+    assert result["hours"] == [{"hour": 5, "q10": -10.0, "q50": -2.3, "q90": 80.0}]  # only what the model needs
+    assert "Not trading advice" in result["note"]
+    assert "2026-10-25" in result["sources"][0] and "SMARD" in result["sources"][0]
+
+
+def test_price_forecast_is_one_of_the_data_tools():
+    assert tools.price_forecast in tools.DATA_TOOLS

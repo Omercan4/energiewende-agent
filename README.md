@@ -17,7 +17,7 @@ question needs **live data** (electricity prices, power generation, weather), a 
 The project shows the full path from idea to service: tool calling with LangGraph, retrieval (RAG) with
 LlamaIndex, a measured evaluation tracked in MLflow, Docker and CI, and a deployment on Azure.
 
-## 30-second overview
+## A short video overview
 
 [![A 30-second overview: question, tool choice, answer with sources, evaluation](docs/media/ad-preview.gif)](docs/media/ad.mp4)
 
